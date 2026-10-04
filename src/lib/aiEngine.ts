@@ -41,10 +41,20 @@ export async function testOllamaConnection(endpoint = 'http://localhost:11434'):
     const models = Array.isArray(data.models) ? data.models.map((m: any) => m.name || m.model) : [];
     return { ok: true, models };
   } catch (err: any) {
+    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    const isLocalHttp = endpoint.startsWith('http://localhost') || endpoint.startsWith('http://127.0.0.1');
+
+    let errorMessage = 'Could not reach local Ollama server';
+    if (err.name === 'AbortError') {
+      errorMessage = 'Connection timed out';
+    } else if (isHttps && isLocalHttp) {
+      errorMessage = 'Browser blocked request (Mixed Content): Deployed HTTPS sites cannot reach unencrypted http://localhost. Switch to Built-in Offline Engine, run locally at localhost:3000, or use an HTTPS tunnel.';
+    }
+
     return { 
       ok: false, 
       models: [], 
-      error: err.name === 'AbortError' ? 'Connection timed out' : 'Could not reach local Ollama server' 
+      error: errorMessage 
     };
   }
 }

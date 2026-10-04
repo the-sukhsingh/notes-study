@@ -231,6 +231,27 @@ export function ModelSettingsModal({
               </div>
             )}
 
+            {typeof window !== 'undefined' && window.location.protocol === 'https:' && localSettings.ollamaEndpoint.startsWith('http://localhost') && (
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 space-y-1.5">
+                <div className="font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  Deployed (HTTPS) Note
+                </div>
+                <p className="text-[11px] leading-relaxed text-amber-700/90 dark:text-amber-300/80">
+                  Web browsers block HTTPS pages from connecting directly to unencrypted <code className="font-mono bg-amber-500/15 px-1 py-0.5 rounded text-[10px]">http://localhost:11434</code> due to Mixed Content security rules.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-0.5 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setLocalSettings(prev => ({ ...prev, provider: 'builtin' }))}
+                    className="font-medium underline hover:opacity-80"
+                  >
+                    Switch to Built-in Offline Engine &rarr;
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground font-mono">Model Selection</label>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
