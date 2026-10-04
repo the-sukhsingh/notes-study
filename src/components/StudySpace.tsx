@@ -238,6 +238,7 @@ export function StudySpace({
             setActiveFocusModal(null);
           }}
           presetTopicId={selectedTopicForFocus}
+          onLaunchQuiz={handleLaunchTopicQuiz}
         />
       </FocusModal>
 
@@ -263,6 +264,7 @@ export function StudySpace({
             setActiveFocusModal(null);
           }}
           presetTopicId={selectedTopicForFocus}
+          onLaunchFlashcards={handleLaunchTopicFlashcards}
         />
       </FocusModal>
 

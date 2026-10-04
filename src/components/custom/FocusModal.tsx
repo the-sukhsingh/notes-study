@@ -95,7 +95,7 @@ export function FocusModal({
             <WaveBackgroundPreview
               color={color}
               cycleColors={false}
-              className="w-full h-full [mask-image:linear-gradient(to_bottom,transparent_0%,black_20%,black_80%,transparent_100%)] opacity-80"
+              className="w-full h-full opacity-80"
             />
           </motion.div>
 

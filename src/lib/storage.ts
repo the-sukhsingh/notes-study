@@ -135,6 +135,26 @@ export function updateFlashcard(card: Flashcard): void {
   }
 }
 
+export function addFlashcard(card: Flashcard): void {
+  if (typeof window === 'undefined') return;
+  const all = getAllFlashcards();
+  const exists = all.some(c => c.id === card.id);
+  if (!exists) {
+    all.push(card);
+    localStorage.setItem(KEYS.FLASHCARDS, JSON.stringify(all));
+  } else {
+    updateFlashcard(card);
+  }
+}
+
+export function addFlashcards(cards: Flashcard[]): void {
+  if (typeof window === 'undefined') return;
+  const all = getAllFlashcards();
+  const existingMap = new Map(all.map(c => [c.id, c]));
+  cards.forEach(c => existingMap.set(c.id, c));
+  localStorage.setItem(KEYS.FLASHCARDS, JSON.stringify(Array.from(existingMap.values())));
+}
+
 export function deleteFlashcard(cardId: string): void {
   if (typeof window === 'undefined') return;
   const all = getAllFlashcards().filter(c => c.id !== cardId);

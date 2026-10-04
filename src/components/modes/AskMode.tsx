@@ -7,10 +7,13 @@ import {
   AlertCircle, 
   CheckCircle2, 
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Layers,
+  Check
 } from 'lucide-react';
-import { DocumentSource, AskAnswer, AISettings } from '@/lib/types';
+import { DocumentSource, AskAnswer, AISettings, Flashcard } from '@/lib/types';
 import { askNotesQuestion } from '@/lib/aiEngine';
+import { addFlashcard } from '@/lib/storage';
 import { ColoredButton } from '@/components/custom/colored-button';
 
 interface AskModeProps {
@@ -27,6 +30,7 @@ export function AskMode({
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<AskAnswer | null>(null);
+  const [isSavedAsCard, setIsSavedAsCard] = useState(false);
 
   const suggestedQueries = [
     `What are the core principles of ${document.topics[0]?.title || 'this topic'}?`,
@@ -39,6 +43,7 @@ export function AskMode({
     if (!q.trim()) return;
 
     setLoading(true);
+    setIsSavedAsCard(false);
     try {
       const res = await askNotesQuestion(q, document, settings);
       setAnswer(res);
@@ -47,6 +52,24 @@ export function AskMode({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveAsFlashcard = () => {
+    if (!answer) return;
+    const newCard: Flashcard = {
+      id: `ask-card-${Date.now()}`,
+      docId: document.id,
+      front: answer.question,
+      back: answer.answer,
+      cardType: 'question',
+      sourcePage: answer.references[0]?.pageNumber || 1,
+      sourcePassage: answer.references[0]?.passage || '',
+      reps: 0,
+      intervalDays: 1,
+      isUserEdited: true
+    };
+    addFlashcard(newCard);
+    setIsSavedAsCard(true);
   };
 
   return (
@@ -120,6 +143,28 @@ export function AskMode({
           {/* Answer Text */}
           <div className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans text-foreground/90">
             {answer.answer}
+          </div>
+
+          {/* Quick Action to Save as Flashcard */}
+          <div className="flex items-center justify-end pt-1">
+            <ColoredButton
+              color={isSavedAsCard ? "emerald" : "indigo"}
+              size="sm"
+              disabled={isSavedAsCard}
+              onClick={handleSaveAsFlashcard}
+            >
+              {isSavedAsCard ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  Saved to Flashcards!
+                </>
+              ) : (
+                <>
+                  <Layers className="w-3.5 h-3.5" />
+                  Save as Flashcard
+                </>
+              )}
+            </ColoredButton>
           </div>
 
           {/* References */}

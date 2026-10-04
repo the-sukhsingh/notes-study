@@ -11,10 +11,11 @@ import {
   Trophy,
   ArrowRight
 } from 'lucide-react';
-import { DocumentSource, QuizQuestion, QuizSession, QuizAttempt, AISettings } from '@/lib/types';
+import { DocumentSource, QuizQuestion, QuizSession, QuizAttempt, AISettings, Flashcard } from '@/lib/types';
 import { generateQuiz } from '@/lib/aiEngine';
-import { saveQuizSession } from '@/lib/storage';
+import { saveQuizSession, addFlashcards } from '@/lib/storage';
 import { ColoredButton } from '@/components/custom/colored-button';
+import { Layers } from 'lucide-react';
 
 interface QuizModeProps {
   document: DocumentSource;
@@ -22,6 +23,7 @@ interface QuizModeProps {
   onJumpToPage: (page: number) => void;
   presetQuestions?: QuizQuestion[];
   presetTopicId?: string;
+  onLaunchFlashcards?: (topicId?: string) => void;
 }
 
 export function QuizMode({
@@ -29,7 +31,8 @@ export function QuizMode({
   settings,
   onJumpToPage,
   presetQuestions,
-  presetTopicId
+  presetTopicId,
+  onLaunchFlashcards
 }: QuizModeProps) {
   const [questions, setQuestions] = useState<QuizQuestion[]>(presetQuestions || []);
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -37,6 +40,7 @@ export function QuizMode({
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<string, boolean>>({});
   const [isFinished, setIsFinished] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [convertedCardsCount, setConvertedCardsCount] = useState<number | null>(null);
 
   const [selectedTopicId, setSelectedTopicId] = useState<string>(presetTopicId || 'all');
   const [questionCount, setQuestionCount] = useState<number>(5);
@@ -147,6 +151,31 @@ export function QuizMode({
     }
   };
 
+  const handleCreateCardsFromMissed = () => {
+    const missed = questions.filter(q => {
+      const userAns = selectedAnswers[q.id];
+      return String(userAns).trim().toLowerCase() !== String(q.correctAnswer).trim().toLowerCase();
+    });
+    if (missed.length === 0) return;
+
+    const newCards: Flashcard[] = missed.map(q => ({
+      id: `quiz-card-${q.id}-${Date.now()}`,
+      docId: document.id,
+      topicId: q.topicId,
+      front: q.question,
+      back: `Correct: ${q.correctAnswer}\n\n${q.explanation}`,
+      cardType: 'question',
+      sourcePage: q.sourcePage,
+      sourcePassage: q.sourcePassage,
+      reps: 0,
+      intervalDays: 1,
+      difficulty: 'again'
+    }));
+
+    addFlashcards(newCards);
+    setConvertedCardsCount(newCards.length);
+  };
+
   const currentQ = questions[currentQIndex];
   const isCurrentChecked = currentQ ? !!submittedAnswers[currentQ.id] : false;
   const currentUserAns = currentQ ? selectedAnswers[currentQ.id] : undefined;
@@ -227,22 +256,39 @@ export function QuizMode({
             })()}
           </div>
 
-          <div className="flex items-center justify-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             {questions.some(q => String(selectedAnswers[q.id]).trim().toLowerCase() !== String(q.correctAnswer).trim().toLowerCase()) && (
-              <ColoredButton
-                color="emerald"
-                size="lg"
-                onClick={handleRetryMissed}
-              >
-                <RotateCcw className="w-4 h-4" />
-                Retry Missed Questions
-              </ColoredButton>
+              <>
+                <ColoredButton
+                  color="emerald"
+                  size="lg"
+                  onClick={handleRetryMissed}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Retry Missed Questions
+                </ColoredButton>
+
+                <ColoredButton
+                  color="indigo"
+                  size="lg"
+                  disabled={convertedCardsCount !== null}
+                  onClick={handleCreateCardsFromMissed}
+                >
+                  <Layers className="w-4 h-4" />
+                  {convertedCardsCount !== null
+                    ? `Added ${convertedCardsCount} to Flashcards!`
+                    : 'Convert Missed to Flashcards'}
+                </ColoredButton>
+              </>
             )}
 
             <ColoredButton
               color="neutral"
               size="lg"
-              onClick={() => handleGenerateQuiz()}
+              onClick={() => {
+                setConvertedCardsCount(null);
+                handleGenerateQuiz();
+              }}
             >
               Take Another Quiz
             </ColoredButton>

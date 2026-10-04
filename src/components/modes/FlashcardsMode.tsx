@@ -28,18 +28,21 @@ interface FlashcardsModeProps {
   settings: AISettings;
   onJumpToPage: (page: number) => void;
   presetTopicId?: string;
+  onLaunchQuiz?: (topicId?: string) => void;
 }
 
 export function FlashcardsMode({
   document,
   settings,
   onJumpToPage,
-  presetTopicId
+  presetTopicId,
+  onLaunchQuiz
 }: FlashcardsModeProps) {
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [isSessionFinished, setIsSessionFinished] = useState(false);
   const [selectedTopicId, setSelectedTopicId] = useState<string>(presetTopicId || 'all');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
@@ -68,6 +71,7 @@ export function FlashcardsMode({
       saveFlashcardsForDoc(document.id, newCards);
       setCurrentIndex(0);
       setIsFlipped(false);
+      setIsSessionFinished(false);
     } catch (e) {
       console.error('Failed to generate flashcards:', e);
     } finally {
@@ -91,6 +95,7 @@ export function FlashcardsMode({
       setTimeout(() => setCurrentIndex(prev => prev + 1), 120);
     } else {
       setIsFlipped(false);
+      setIsSessionFinished(true);
     }
   };
 
@@ -202,6 +207,46 @@ export function FlashcardsMode({
         <div className="py-28 flex flex-col items-center justify-center gap-3 text-xs text-muted-foreground">
           <div className="w-6 h-6 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
           <span>Generating recall flashcards from your notes...</span>
+        </div>
+      ) : isSessionFinished ? (
+        <div className="py-12 space-y-6 text-center animate-in fade-in duration-200 max-w-md mx-auto">
+          <div className="size-14 mx-auto rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <Sparkles className="w-7 h-7" />
+          </div>
+
+          <div className="space-y-1.5">
+            <h3 className="text-xl font-semibold tracking-tight text-foreground">
+              Review Session Complete!
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              You reviewed all {cards.length} flashcards in this deck. Spaced repetition intervals have been recorded.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <ColoredButton
+              color="indigo"
+              size="lg"
+              onClick={() => {
+                setCurrentIndex(0);
+                setIsSessionFinished(false);
+                setIsFlipped(false);
+              }}
+            >
+              <RotateCw className="w-4 h-4" />
+              Review Deck Again
+            </ColoredButton>
+
+            {onLaunchQuiz && (
+              <ColoredButton
+                color="emerald"
+                size="lg"
+                onClick={() => onLaunchQuiz(selectedTopicId === 'all' ? undefined : selectedTopicId)}
+              >
+                Test With Quiz →
+              </ColoredButton>
+            )}
+          </div>
         </div>
       ) : cards.length > 0 && currentCard ? (
         <div className="space-y-6">

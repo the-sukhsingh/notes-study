@@ -5,10 +5,13 @@ import {
   Sparkles, 
   BookOpen, 
   HelpCircle, 
-  RefreshCw
+  RefreshCw,
+  Layers,
+  Check
 } from 'lucide-react';
-import { DocumentSource, ExplanationStyle, ConceptExplanation, AISettings } from '@/lib/types';
+import { DocumentSource, ExplanationStyle, ConceptExplanation, AISettings, Flashcard } from '@/lib/types';
 import { explainConcept } from '@/lib/aiEngine';
+import { addFlashcard } from '@/lib/storage';
 import { ColoredButton } from '@/components/custom/colored-button';
 
 interface ExplainModeProps {
@@ -31,6 +34,7 @@ export function ExplainMode({
   const [selectedStyle, setSelectedStyle] = useState<ExplanationStyle>('simple');
   const [explanation, setExplanation] = useState<ConceptExplanation | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isSavedAsCard, setIsSavedAsCard] = useState(false);
 
   const stylesList: { id: ExplanationStyle; label: string; desc: string }[] = [
     { id: 'simple', label: 'Simple', desc: 'Feynman technique' },
@@ -46,6 +50,7 @@ export function ExplainMode({
     if (!target) return;
 
     setLoading(true);
+    setIsSavedAsCard(false);
     try {
       const res = await explainConcept(target, document, selectedStyle, settings);
       setExplanation(res);
@@ -54,6 +59,24 @@ export function ExplainMode({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveAsFlashcard = () => {
+    if (!explanation) return;
+    const newCard: Flashcard = {
+      id: `explain-card-${Date.now()}`,
+      docId: document.id,
+      front: `Explain: ${explanation.topic} (${explanation.style} style)`,
+      back: explanation.content,
+      cardType: 'concept',
+      sourcePage: explanation.sourcePage,
+      sourcePassage: explanation.sourcePassage,
+      reps: 0,
+      intervalDays: 1,
+      isUserEdited: true
+    };
+    addFlashcard(newCard);
+    setIsSavedAsCard(true);
   };
 
   return (
@@ -167,6 +190,28 @@ export function ExplainMode({
 
           <div className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans text-foreground/90">
             {explanation.content}
+          </div>
+
+          {/* Quick Action to Save as Flashcard */}
+          <div className="flex items-center justify-end pt-1">
+            <ColoredButton
+              color={isSavedAsCard ? "emerald" : "indigo"}
+              size="sm"
+              disabled={isSavedAsCard}
+              onClick={handleSaveAsFlashcard}
+            >
+              {isSavedAsCard ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  Saved to Flashcards!
+                </>
+              ) : (
+                <>
+                  <Layers className="w-3.5 h-3.5" />
+                  Save Explanation as Flashcard
+                </>
+              )}
+            </ColoredButton>
           </div>
 
           {explanation.followUpQuestions && explanation.followUpQuestions.length > 0 && (
