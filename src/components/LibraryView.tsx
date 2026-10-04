@@ -321,10 +321,10 @@ export function LibraryView({
           </div>
         </div>
 
-        {/* Document Version List (Inspired by ResumeVersionList) */}
-        <div className="space-y-2.5">
+        {/* Document Library Table View */}
+        <div className="overflow-hidden rounded-2xl bg-card/60 backdrop-blur-md border border-neutral-200/80 dark:border-neutral-800/80 shadow-xs">
           {filteredDocs.length === 0 ? (
-            <div className="py-16 text-center space-y-4 rounded-2xl bg-neutral-50/50 dark:bg-neutral-900/30 border border-dashed border-neutral-200 dark:border-neutral-800">
+            <div className="py-16 text-center space-y-4">
               <BookOpen className="w-8 h-8 mx-auto text-muted-foreground/60" />
               <div className="space-y-1">
                 <p className="text-sm font-medium text-foreground">No documents found</p>
@@ -339,91 +339,132 @@ export function LibraryView({
               </ColoredButton>
             </div>
           ) : (
-            filteredDocs.map((doc) => {
-              const isActive = doc.id === activeDocId;
-              return (
-                <div
-                  key={doc.id}
-                  className={`group relative p-4 sm:p-4.5 rounded-2xl bg-white/70 dark:bg-neutral-900/50 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 ${
-                    isActive 
-                      ? 'border-amber-300/80 dark:border-amber-700/80 shadow-xs' 
-                      : 'border-neutral-200/70 dark:border-neutral-800/70 hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-50/60 dark:hover:bg-neutral-800/40'
-                  }`}
-                >
-                  {/* Left: Document Info */}
-                  <div className="space-y-1.5 min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 
-                        onClick={() => onSelectDocument(doc.id)}
-                        className="font-medium text-base text-foreground hover:underline cursor-pointer truncate"
+            <div className="overflow-x-auto no-scrollbar">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-neutral-200/70 dark:border-neutral-800/70 bg-neutral-100/50 dark:bg-neutral-850/50 text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80 select-none">
+                    <th className="py-3 px-4 sm:px-5 font-medium">Document</th>
+                    <th className="py-3 px-3 font-medium hidden md:table-cell">Length</th>
+                    <th className="py-3 px-3 font-medium hidden sm:table-cell">Topics</th>
+                    <th className="py-3 px-3 font-medium hidden lg:table-cell">Cards</th>
+                    <th className="py-3 px-3 font-medium">Status</th>
+                    <th className="py-3 px-4 sm:px-5 text-right font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
+                  {filteredDocs.map((doc) => {
+                    const isActive = doc.id === activeDocId;
+                    const cardCount = getFlashcardsForDoc(doc.id).length || 6;
+
+                    return (
+                      <tr
+                        key={doc.id}
+                        className={`group transition-colors ${
+                          isActive 
+                            ? 'bg-amber-50/50 dark:bg-amber-950/20' 
+                            : 'hover:bg-neutral-50/80 dark:hover:bg-neutral-800/40'
+                        }`}
                       >
-                        {doc.title}
-                      </h3>
-                      <span className="uppercase text-[10px] font-mono px-2 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
-                        {doc.fileType.toUpperCase()}
-                      </span>
-                      {isActive && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300">
-                          Active Workspace
-                        </span>
-                      )}
-                    </div>
+                        {/* Title & File details */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+                          <div className="space-y-1 max-w-sm sm:max-w-md">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                onClick={() => onSelectDocument(doc.id)}
+                                className="font-medium text-xs sm:text-sm text-foreground hover:underline cursor-pointer truncate"
+                                title={doc.title}
+                              >
+                                {doc.title}
+                              </span>
+                              <span className="uppercase text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-semibold shrink-0">
+                                {doc.fileType.toUpperCase()}
+                              </span>
+                            </div>
+                            <span className="text-[11px] font-mono text-muted-foreground truncate block">
+                              {doc.fileName}
+                            </span>
+                          </div>
+                        </td>
 
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground font-mono">
-                      <span>{doc.fileName}</span>
-                      <span>•</span>
-                      <span>{doc.pageCount} pages</span>
-                      <span>•</span>
-                      <span>{doc.wordCount.toLocaleString()} words</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <BookOpen className="w-3 h-3 text-amber-500" />
-                        {doc.topics.length} topics
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Layers className="w-3 h-3 text-indigo-500" />
-                        {getFlashcardsForDoc(doc.id).length || 6} cards
-                      </span>
-                    </div>
-                  </div>
+                        {/* Length: Pages & Words */}
+                        <td className="py-3.5 px-3 align-middle text-muted-foreground font-mono hidden md:table-cell whitespace-nowrap">
+                          <span>{doc.pageCount} p</span>
+                          <span className="opacity-40 mx-1">•</span>
+                          <span>{doc.wordCount.toLocaleString()} w</span>
+                        </td>
 
-                  {/* Right: Actions */}
-                  <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center">
-                    <button
-                      type="button"
-                      onClick={() => onInspectDocument(doc)}
-                      className="text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
-                      title="Inspect extracted raw text"
-                    >
-                      Raw Text
-                    </button>
+                        {/* Topics */}
+                        <td className="py-3.5 px-3 align-middle hidden sm:table-cell whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 text-foreground/80 font-mono">
+                            <BookOpen className="w-3 h-3 text-amber-500" />
+                            {doc.topics.length} topics
+                          </span>
+                        </td>
 
-                    <ColoredButton
-                      color="amber"
-                      size="sm"
-                      onClick={() => onSelectDocument(doc.id)}
-                    >
-                      Study Notes
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </ColoredButton>
+                        {/* Cards */}
+                        <td className="py-3.5 px-3 align-middle hidden lg:table-cell whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 text-foreground/80 font-mono">
+                            <Layers className="w-3 h-3 text-indigo-500" />
+                            {cardCount} cards
+                          </span>
+                        </td>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm(`Remove "${doc.title}" from your library?`)) {
-                          onDeleteDocument(doc.id);
-                        }
-                      }}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                      title="Delete document"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
+                        {/* Status */}
+                        <td className="py-3.5 px-3 align-middle whitespace-nowrap">
+                          {isActive ? (
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 font-medium">
+                              <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              Active
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-mono text-muted-foreground/60 pl-2">
+                              —
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => onInspectDocument(doc)}
+                              className="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer hidden sm:inline-block"
+                              title="Inspect extracted raw text"
+                            >
+                              Raw Text
+                            </button>
+
+                            <ColoredButton
+                              color="amber"
+                              size="sm"
+                              className="rounded-full px-3"
+                              onClick={() => onSelectDocument(doc.id)}
+                            >
+                              <span>Study</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </ColoredButton>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`Remove "${doc.title}" from your library?`)) {
+                                  onDeleteDocument(doc.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                              title="Delete document"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </main>
