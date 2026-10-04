@@ -102,49 +102,44 @@ export function FocusModal({
           {/* Clean Focus Modal Window */}
           <motion.div
             key="focus-modal-content-window"
-            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            initial={{ opacity: 0, scale: 0.97, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{
               opacity: 0,
-              scale: 0.96,
-              y: 12,
-              transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
+              scale: 0.97,
+              y: 8,
+              transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] },
             }}
-            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              "relative w-full h-[88dvh] max-h-[760px] bg-background/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200/80 dark:border-neutral-800/90 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] rounded-2xl flex flex-col overflow-hidden text-foreground z-10 select-auto",
+              "relative w-full max-h-[86vh] bg-background/95 dark:bg-neutral-900/95 backdrop-blur-2xl ring-1 ring-black/[0.05] dark:ring-white/[0.08] shadow-[0_24px_70px_-15px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_70px_-15px_rgba(0,0,0,0.7)] rounded-[28px] flex flex-col overflow-hidden text-foreground z-10 select-auto",
               maxWidth,
               className
             )}
           >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 sm:px-7 py-4 border-b border-neutral-200/60 dark:border-neutral-800/70 shrink-0 bg-background/50 dark:bg-neutral-900/50">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="space-y-0.5 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-sans text-base sm:text-lg font-semibold tracking-tight text-foreground truncate">
-                      {title}
-                    </h2>
-                    {badge}
-                  </div>
-                  {subtitle && (
-                    <p className="text-xs text-muted-foreground truncate">
-                      {subtitle}
-                    </p>
-                  )}
+            {/* Minimal Header */}
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-5 pb-2 shrink-0">
+              <div className="space-y-0.5 min-w-0">
+                {subtitle && (
+                  <p className="text-[11px] font-mono tracking-wider text-muted-foreground/60 uppercase">
+                    {subtitle}
+                  </p>
+                )}
+                <div className="flex items-center gap-2">
+                  <h2 className="font-sans text-base sm:text-lg font-semibold tracking-tight text-foreground truncate">
+                    {title}
+                  </h2>
+                  {badge}
                 </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
                 {headerActions}
-                <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono rounded bg-neutral-100 dark:bg-neutral-800 text-muted-foreground border border-neutral-200/60 dark:border-neutral-700/60 select-none">
-                  ESC
-                </kbd>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                  className="size-8 rounded-full flex items-center justify-center text-muted-foreground/70 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
                   title="Close (Esc)"
                   aria-label="Close"
                 >
@@ -153,14 +148,14 @@ export function FocusModal({
               </div>
             </div>
 
-            {/* Modal Scrollable Body */}
-            <div className="flex-1 overflow-y-auto px-5 sm:px-7 py-6">
+            {/* Modal Body - Guaranteed Scrollbar-Free */}
+            <div className="flex-1 overflow-y-auto no-scrollbar px-6 sm:px-8 py-4">
               {children}
             </div>
 
-            {/* Modal Footer (Optional) */}
+            {/* Minimal Footer (Optional) */}
             {footer && (
-              <div className="px-5 sm:px-7 py-3.5 border-t border-neutral-200/60 dark:border-neutral-800/70 bg-neutral-50/50 dark:bg-neutral-950/30 shrink-0 flex items-center justify-between">
+              <div className="px-6 sm:px-8 py-3 border-t border-neutral-100 dark:border-neutral-800/40 bg-neutral-50/30 dark:bg-neutral-950/20 shrink-0 flex items-center justify-between text-xs text-muted-foreground">
                 {footer}
               </div>
             )}
