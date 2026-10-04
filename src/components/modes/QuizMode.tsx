@@ -184,15 +184,15 @@ export function QuizMode({
     : false;
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      {/* Quiz Controls Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+    <div className="flex flex-col justify-between max-w-2xl mx-auto h-full space-y-4 select-none">
+      {/* Quiz Streamlined Top Bar */}
+      <div className="flex items-center justify-between gap-3 text-xs shrink-0">
         <div className="flex items-center gap-2">
           <select
             value={selectedTopicId}
             onChange={(e) => setSelectedTopicId(e.target.value)}
             disabled={loading}
-            className="px-3 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-lg text-foreground focus:outline-none border border-neutral-200/50 dark:border-neutral-700/50"
+            className="px-2 py-1 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-lg text-foreground focus:outline-none cursor-pointer"
           >
             <option value="all">All Topics ({document.topics.length})</option>
             {document.topics.map(t => (
@@ -204,7 +204,7 @@ export function QuizMode({
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value as any)}
             disabled={loading}
-            className="px-2.5 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-lg text-foreground focus:outline-none border border-neutral-200/50 dark:border-neutral-700/50"
+            className="px-2 py-1 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-lg text-foreground focus:outline-none cursor-pointer"
           >
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
@@ -212,31 +212,49 @@ export function QuizMode({
           </select>
         </div>
 
-        <ColoredButton
-          color="emerald"
-          size="sm"
-          disabled={loading}
-          onClick={() => handleGenerateQuiz()}
-        >
-          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-          New Quiz
-        </ColoredButton>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono">
+          {questions.length > 0 && currentQ && !isFinished && (
+            <>
+              <span className="tabular-nums font-medium text-foreground">
+                {currentQIndex + 1} <span className="opacity-40">/ {questions.length}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => onJumpToPage(currentQ.sourcePage)}
+                className="hover:text-foreground flex items-center gap-1 text-[11px] transition-colors cursor-pointer"
+              >
+                <BookOpen className="w-3 h-3" />
+                p.{currentQ.sourcePage}
+              </button>
+            </>
+          )}
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => handleGenerateQuiz()}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-neutral-100/60 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer"
+            title="Generate new quiz"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {loading ? (
-        <div className="py-28 flex flex-col items-center justify-center gap-3 text-xs text-muted-foreground">
-          <div className="w-6 h-6 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+        <div className="py-24 flex flex-col items-center justify-center gap-3 text-xs text-muted-foreground">
+          <div className="w-6 h-6 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
           <span>Generating quiz questions from your notes...</span>
         </div>
       ) : isFinished ? (
         /* Quiz Finished Overview */
-        <div className="py-8 space-y-8 text-center animate-in fade-in duration-200">
-          <div className="space-y-3">
-            <div className="inline-flex p-3 rounded-full bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-              <Trophy className="w-8 h-8" />
+        <div className="py-8 space-y-6 text-center animate-in fade-in duration-150">
+          <div className="space-y-2">
+            <div className="size-12 mx-auto rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Trophy className="w-6 h-6" />
             </div>
-            <h3 className="text-2xl font-semibold tracking-tight text-foreground">
-              Quiz Completed!
+            <h3 className="text-xl font-semibold tracking-tight text-foreground">
+              Quiz Completed
             </h3>
             {(() => {
               const correct = questions.filter(q => 
@@ -244,7 +262,7 @@ export function QuizMode({
               ).length;
               const pct = Math.round((correct / questions.length) * 100);
               return (
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <div className="text-4xl font-bold font-mono tracking-tight text-foreground">
                     {pct}%
                   </div>
@@ -256,98 +274,82 @@ export function QuizMode({
             })()}
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
             {questions.some(q => String(selectedAnswers[q.id]).trim().toLowerCase() !== String(q.correctAnswer).trim().toLowerCase()) && (
               <>
                 <ColoredButton
                   color="emerald"
-                  size="lg"
+                  size="default"
                   onClick={handleRetryMissed}
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  Retry Missed Questions
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Retry Missed
                 </ColoredButton>
 
                 <ColoredButton
                   color="indigo"
-                  size="lg"
+                  size="default"
                   disabled={convertedCardsCount !== null}
                   onClick={handleCreateCardsFromMissed}
                 >
-                  <Layers className="w-4 h-4" />
+                  <Layers className="w-3.5 h-3.5" />
                   {convertedCardsCount !== null
                     ? `Added ${convertedCardsCount} to Flashcards!`
-                    : 'Convert Missed to Flashcards'}
+                    : 'Convert to Flashcards'}
                 </ColoredButton>
               </>
             )}
 
             <ColoredButton
               color="neutral"
-              size="lg"
+              size="default"
               onClick={() => {
                 setConvertedCardsCount(null);
                 handleGenerateQuiz();
               }}
             >
-              Take Another Quiz
+              New Quiz
             </ColoredButton>
           </div>
         </div>
       ) : questions.length > 0 && currentQ ? (
         /* Question Answering View */
-        <div className="space-y-6">
-          {/* Question Header & Progress */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
-            <span className="font-medium text-foreground">
-              Question {currentQIndex + 1} <span className="opacity-50">/ {questions.length}</span>
-            </span>
-
-            <button
-              type="button"
-              onClick={() => onJumpToPage(currentQ.sourcePage)}
-              className="hover:text-foreground flex items-center gap-1 text-[11px]"
-            >
-              <BookOpen className="w-3 h-3" />
-              Source Page {currentQ.sourcePage}
-            </button>
-          </div>
-
-          {/* Progress track */}
-          <div className="w-full h-1 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+        <div className="space-y-4">
+          {/* Thin Progress bar */}
+          <div className="w-full h-0.5 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-emerald-500 transition-all duration-300"
+              className="h-full bg-emerald-500/80 transition-all duration-200"
               style={{ width: `${((currentQIndex + 1) / questions.length) * 100}%` }}
             />
           </div>
 
           {/* Question Prompt */}
-          <div className="space-y-2 pt-2">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/70">
+          <div className="space-y-1.5 pt-1 text-center max-w-xl mx-auto">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">
               {currentQ.type === 'multiple-choice' ? 'Multiple Choice' : 'True / False'}
             </span>
-            <h3 className="text-xl sm:text-2xl font-medium tracking-tight text-foreground leading-snug">
+            <h3 className="text-base sm:text-lg font-serif font-normal text-foreground leading-snug tracking-tight text-wrap balance">
               {currentQ.question}
             </h3>
           </div>
 
-          {/* Options */}
-          <div className="space-y-2.5 pt-2">
+          {/* Borderless Calm Options */}
+          <div className="space-y-2 pt-1 max-w-xl mx-auto">
             {(currentQ.options || []).map((option, idx) => {
               const isSelected = currentUserAns === option;
-              let optionStyle = "bg-neutral-100/50 dark:bg-neutral-800/40 hover:bg-neutral-100 dark:hover:bg-neutral-800 border-neutral-200/60 dark:border-neutral-700/60";
+              let optionStyle = "bg-neutral-100/50 dark:bg-neutral-800/40 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/70 text-foreground";
 
               if (isCurrentChecked) {
                 const isCorrectOption = String(option).trim().toLowerCase() === String(currentQ.correctAnswer).trim().toLowerCase();
                 if (isCorrectOption) {
-                  optionStyle = "bg-emerald-100/80 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 text-emerald-950 dark:text-emerald-200 font-medium";
+                  optionStyle = "bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-950 dark:text-emerald-200 font-medium";
                 } else if (isSelected && !isCurrentCorrect) {
-                  optionStyle = "bg-rose-100/80 dark:bg-rose-950/60 border-rose-300 dark:border-rose-700 text-rose-950 dark:text-rose-200";
+                  optionStyle = "bg-rose-100/80 dark:bg-rose-950/60 text-rose-950 dark:text-rose-200";
                 } else {
-                  optionStyle = "opacity-50 border-transparent";
+                  optionStyle = "opacity-40";
                 }
               } else if (isSelected) {
-                optionStyle = "bg-neutral-200/80 dark:bg-neutral-700/80 border-neutral-400 dark:border-neutral-500 font-medium";
+                optionStyle = "bg-neutral-200/80 dark:bg-neutral-700/80 font-medium";
               }
 
               return (
@@ -356,21 +358,21 @@ export function QuizMode({
                   type="button"
                   disabled={isCurrentChecked}
                   onClick={() => handleSelectOption(currentQ.id, option)}
-                  className={`w-full p-4 rounded-xl border text-left text-sm transition-all flex items-center justify-between gap-3 cursor-pointer ${optionStyle}`}
+                  className={`w-full py-2.5 px-4 rounded-xl text-left text-xs sm:text-sm transition-all flex items-center justify-between gap-3 cursor-pointer active-press ${optionStyle}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="w-5 h-5 rounded-md bg-neutral-200/60 dark:bg-neutral-700/60 text-xs font-mono flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-5 h-5 rounded-md bg-black/5 dark:bg-white/10 text-[11px] font-mono flex items-center justify-center shrink-0">
                       {String.fromCharCode(65 + idx)}
                     </span>
-                    <span>{option}</span>
+                    <span className="truncate">{option}</span>
                   </div>
 
                   {isCurrentChecked && (
-                    <div>
+                    <div className="shrink-0">
                       {String(option).trim().toLowerCase() === String(currentQ.correctAnswer).trim().toLowerCase() ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                       ) : isSelected ? (
-                        <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                        <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                       ) : null}
                     </div>
                   )}
@@ -381,30 +383,30 @@ export function QuizMode({
 
           {/* Explanation Box when checked */}
           {isCurrentChecked && (
-            <div className={`p-4 rounded-xl text-xs space-y-2 animate-in fade-in duration-150 ${
+            <div className={`p-3 rounded-xl text-xs space-y-1 animate-in fade-in duration-150 max-w-xl mx-auto ${
               isCurrentCorrect 
-                ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200' 
-                : 'bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-800/40 text-rose-900 dark:text-rose-200'
+                ? 'bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200' 
+                : 'bg-rose-50/60 dark:bg-rose-950/20 text-rose-900 dark:text-rose-200'
             }`}>
-              <div className="flex items-center justify-between font-semibold">
-                <span>{isCurrentCorrect ? 'Correct!' : 'Incorrect'}</span>
-                <span className="font-mono text-[11px]">Cited: Page {currentQ.sourcePage}</span>
+              <div className="flex items-center justify-between font-medium">
+                <span>{isCurrentCorrect ? 'Correct' : 'Incorrect'}</span>
+                <span className="font-mono text-[10px] opacity-70">Page {currentQ.sourcePage}</span>
               </div>
-              <p className="leading-relaxed opacity-90">{currentQ.explanation}</p>
+              <p className="leading-relaxed opacity-85 text-[11px] text-wrap pretty">{currentQ.explanation}</p>
             </div>
           )}
 
           {/* Bottom Actions */}
-          <div className="flex items-center justify-between pt-2">
-            <span className="text-xs text-muted-foreground font-mono">
-              {currentUserAns === undefined && !isCurrentChecked ? 'Select an answer to continue' : ''}
+          <div className="flex items-center justify-between pt-1 max-w-xl mx-auto">
+            <span className="text-[11px] text-muted-foreground/60 font-mono">
+              {currentUserAns === undefined && !isCurrentChecked ? 'Select an answer' : ''}
             </span>
 
             <div>
               {!isCurrentChecked ? (
                 <ColoredButton
                   color="emerald"
-                  size="lg"
+                  size="default"
                   disabled={currentUserAns === undefined}
                   onClick={() => handleCheckAnswer(currentQ.id)}
                 >
@@ -413,13 +415,13 @@ export function QuizMode({
               ) : (
                 <ColoredButton
                   color="indigo"
-                  size="lg"
+                  size="default"
                   onClick={handleNext}
                 >
                   {currentQIndex < questions.length - 1 ? (
                     <>
                       Next Question
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </>
                   ) : (
                     'View Quiz Results'
@@ -430,9 +432,9 @@ export function QuizMode({
           </div>
         </div>
       ) : (
-        <div className="py-20 text-center space-y-4">
-          <p className="text-sm text-muted-foreground">No questions found for this topic.</p>
-          <ColoredButton color="emerald" onClick={() => handleGenerateQuiz()}>
+        <div className="py-16 text-center space-y-3">
+          <p className="text-xs text-muted-foreground">No questions found for this topic.</p>
+          <ColoredButton color="emerald" size="sm" onClick={() => handleGenerateQuiz()}>
             Generate Questions
           </ColoredButton>
         </div>
