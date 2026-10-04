@@ -19,21 +19,36 @@ export const DEFAULT_AI_SETTINGS: AISettings = {
   temperature: 0.3
 };
 
+export function getCleanOllamaEndpoint(endpoint = 'http://localhost:11434'): string {
+  return (endpoint || 'http://localhost:11434').trim().replace(/\/+$/, '');
+}
+
 /**
  * Checks if Ollama is running and lists available models.
  */
 export async function testOllamaConnection(endpoint = 'http://localhost:11434'): Promise<{ ok: boolean; models: string[]; error?: string }> {
+  const cleanEndpoint = getCleanOllamaEndpoint(endpoint);
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-    const res = await fetch(`${endpoint}/api/tags`, {
+    const res = await fetch(`${cleanEndpoint}/api/tags`, {
       method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
       signal: controller.signal
     });
     clearTimeout(timeoutId);
 
     if (!res.ok) {
+      if (res.status === 403) {
+        return {
+          ok: false,
+          models: [],
+          error: 'CORS Forbidden (HTTP 403): Ollama blocked this origin. Start Ollama with OLLAMA_ORIGINS="*" to allow tunnel connections.'
+        };
+      }
       return { ok: false, models: [], error: `Ollama returned HTTP ${res.status}` };
     }
 
@@ -42,13 +57,15 @@ export async function testOllamaConnection(endpoint = 'http://localhost:11434'):
     return { ok: true, models };
   } catch (err: any) {
     const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-    const isLocalHttp = endpoint.startsWith('http://localhost') || endpoint.startsWith('http://127.0.0.1');
+    const isLocalHttp = cleanEndpoint.startsWith('http://localhost') || cleanEndpoint.startsWith('http://127.0.0.1');
 
     let errorMessage = 'Could not reach local Ollama server';
     if (err.name === 'AbortError') {
-      errorMessage = 'Connection timed out';
+      errorMessage = 'Connection timed out (no response from endpoint)';
     } else if (isHttps && isLocalHttp) {
       errorMessage = 'Browser blocked request (Mixed Content): Deployed HTTPS sites cannot reach unencrypted http://localhost. Switch to Built-in Offline Engine, run locally at localhost:3000, or use an HTTPS tunnel.';
+    } else if (isHttps && !isLocalHttp) {
+      errorMessage = 'CORS / Tunnel Error: Ollama rejected the browser preflight. Ensure Ollama is running with OLLAMA_ORIGINS="*" and ngrok was launched with: ngrok http 11434 --host-header="localhost:11434".';
     }
 
     return { 
@@ -627,7 +644,8 @@ STUDY NOTES (Page ${pageNum}):
 ${contextSnippet}`;
 
     try {
-      const res = await fetch(`${settings.ollamaEndpoint}/api/generate`, {
+      const cleanEndpoint = getCleanOllamaEndpoint(settings.ollamaEndpoint);
+      const res = await fetch(`${cleanEndpoint}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -722,7 +740,8 @@ STUDY NOTES (Page ${pageNum}):
 ${contextSnippet}`;
 
     try {
-      const res = await fetch(`${settings.ollamaEndpoint}/api/generate`, {
+      const cleanEndpoint = getCleanOllamaEndpoint(settings.ollamaEndpoint);
+      const res = await fetch(`${cleanEndpoint}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -785,7 +804,8 @@ ${context}
 
 Provide a concise, direct answer followed by citing the relevant page number:`;
 
-  const res = await fetch(`${settings.ollamaEndpoint}/api/generate`, {
+  const cleanEndpoint = getCleanOllamaEndpoint(settings.ollamaEndpoint);
+  const res = await fetch(`${cleanEndpoint}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -836,7 +856,8 @@ Style requirement: ${styleInstruction}
 
 Ground your explanation strictly in what the notes say. Output clear markdown with headings.`;
 
-  const res = await fetch(`${settings.ollamaEndpoint}/api/generate`, {
+  const cleanEndpoint = getCleanOllamaEndpoint(settings.ollamaEndpoint);
+  const res = await fetch(`${cleanEndpoint}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
