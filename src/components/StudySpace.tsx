@@ -93,20 +93,18 @@ export function StudySpace({
 
       <main className="relative z-10 max-w-6xl mx-auto px-6 pt-8 pb-20 space-y-8">
         {/* Document Header & Focus Mode Action Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-neutral-200/60 dark:border-neutral-800/60">
-          <div className="space-y-1.5 min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground truncate">
-                {document.title}
-              </h1>
-            </div>
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 pb-2">
+          <div className="space-y-2 min-w-0 max-w-2xl">
+            <h1 className="font-serif text-2xl sm:text-3xl font-normal tracking-tight text-foreground text-wrap balance leading-snug">
+              {document.title}
+            </h1>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-mono">
-              <span className="truncate max-w-xs">{document.fileName}</span>
-              <span>•</span>
               <span>{document.pageCount} pages</span>
-              <span>•</span>
+              <span className="opacity-40">•</span>
               <span>{document.wordCount.toLocaleString()} words</span>
-              <span>•</span>
+              <span className="opacity-40">•</span>
+              <span className="truncate max-w-[220px] opacity-80">{document.fileName}</span>
+              <span className="opacity-40">•</span>
               <button
                 type="button"
                 onClick={onInspectDocument}
@@ -118,8 +116,8 @@ export function StudySpace({
             </div>
           </div>
 
-          {/* Calm Focus Mode Trigger Buttons */}
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* Calm Focus Mode Trigger Buttons - Only Relevant Learning Tools */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0 pt-1 lg:pt-0">
             <ColoredButton
               color="indigo"
               size="default"
@@ -127,7 +125,7 @@ export function StudySpace({
                 setSelectedTopicForFocus(undefined);
                 setActiveFocusModal('flashcards');
               }}
-              title="Launch Flashcards Focus Session"
+              title="Launch Flashcards Recall Session"
             >
               <Layers className="w-3.5 h-3.5" />
               Flashcards
@@ -140,7 +138,7 @@ export function StudySpace({
                 setSelectedTopicForFocus(undefined);
                 setActiveFocusModal('quiz');
               }}
-              title="Launch Interactive Quiz Session"
+              title="Launch Interactive Quiz"
             >
               <CheckSquare className="w-3.5 h-3.5" />
               Take Quiz
@@ -150,14 +148,14 @@ export function StudySpace({
               color="amber"
               size="default"
               onClick={() => setActiveFocusModal('revision')}
-              title="Smart Revision Queue"
+              title="Open Smart Revision"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              Smart Revision
+              Revision
             </ColoredButton>
 
             <ColoredButton
-              color="cyan"
+              color="neutral"
               size="default"
               onClick={() => setActiveFocusModal('ask')}
               title="Ask Notes Questions"
@@ -165,43 +163,25 @@ export function StudySpace({
               <HelpCircle className="w-3.5 h-3.5" />
               Ask Notes
             </ColoredButton>
-
-            <ColoredButton
-              color="purple"
-              size="default"
-              onClick={() => {
-                setExplainInitialConcept(undefined);
-                setActiveFocusModal('explain');
-              }}
-              title="Explain Concept"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Explain
-            </ColoredButton>
-
-            <ColoredButton
-              color="neutral"
-              size="default"
-              onClick={() => setIsOutlineVisible(!isOutlineVisible)}
-              title={isOutlineVisible ? "Focus on Reading (Zen Mode)" : "Show Document Outline"}
-            >
-              {isOutlineVisible ? <PanelLeftClose className="w-3.5 h-3.5" /> : <PanelLeft className="w-3.5 h-3.5" />}
-              {isOutlineVisible ? 'Zen Mode' : 'Outline'}
-            </ColoredButton>
           </div>
         </div>
 
-        {/* Clean, Tranquil Reading Layout (No cluttered split dashboards) */}
+        {/* Clean, Tranquil Reading Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Quiet, Minimalist Table of Contents / Outline */}
           {isOutlineVisible && (
             <aside className="lg:col-span-3 space-y-4 animate-in fade-in duration-150">
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs text-muted-foreground/80 uppercase tracking-wider font-semibold">
-                  <span>Outline</span>
-                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-500">
-                    {document.topics.length} topics
-                  </span>
+                <div className="flex items-center justify-between text-xs text-muted-foreground/80">
+                  <span className="font-mono text-[11px] uppercase tracking-wider">Outline ({document.topics.length})</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsOutlineVisible(false)}
+                    className="p-1 rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                    title="Collapse Outline (Zen Reading Mode)"
+                  >
+                    <PanelLeftClose className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
                 <nav className="space-y-1">
@@ -223,7 +203,7 @@ export function StudySpace({
                             {t.title}
                           </span>
                           <span className="text-[10px] font-mono opacity-60 shrink-0">
-                            p. {t.pageReferences.join(', ')}
+                            p.{t.pageReferences.join(', ')}
                           </span>
                         </div>
                         <p className="text-[11px] opacity-75 line-clamp-1 mt-0.5 font-normal">
@@ -238,11 +218,24 @@ export function StudySpace({
           )}
 
           {/* Right Column: Serene Document Reading Canvas */}
-          <section className={`${isOutlineVisible ? 'lg:col-span-9' : 'lg:col-span-12 max-w-4xl mx-auto w-full'} min-h-[550px] p-6 sm:p-8 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 shadow-xs transition-all`}>
-            <SourceReaderMode
-              document={document}
-              activePageNumber={activePage}
-              onPageChange={setActivePage}
+          <div className={`${isOutlineVisible ? 'lg:col-span-9' : 'lg:col-span-12 max-w-4xl mx-auto w-full'} space-y-2 transition-all`}>
+            {!isOutlineVisible && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsOutlineVisible(true)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer font-mono"
+                >
+                  <PanelLeft className="w-3.5 h-3.5" />
+                  Show Outline
+                </button>
+              </div>
+            )}
+            <section className="min-h-[550px] p-6 sm:p-8 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 shadow-xs">
+              <SourceReaderMode
+                document={document}
+                activePageNumber={activePage}
+                onPageChange={setActivePage}
               onExplainPassage={handleExplainPassage}
               onAskPassage={handleAskPassage}
               onCreateCardFromPassage={handleCreateCardFromPassage}
