@@ -1,69 +1,166 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { Header } from '@/components/Header';
+import { LibraryView } from '@/components/LibraryView';
+import { StudySpace } from '@/components/StudySpace';
+import { ModelSettingsModal } from '@/components/ModelSettingsModal';
+import { InspectionModal } from '@/components/InspectionModal';
+import { DocumentSource, AISettings } from '@/lib/types';
+import { 
+  getDocuments, 
+  saveDocument, 
+  deleteDocument, 
+  getActiveDocId, 
+  setActiveDocId,
+  getAISettings,
+  saveAISettings
+} from '@/lib/storage';
+import { DEFAULT_AI_SETTINGS } from '@/lib/aiEngine';
+
+import { SAMPLE_DOCUMENTS } from '@/lib/sampleNotes';
 
 export default function Home() {
+  const [documents, setDocuments] = useState<DocumentSource[]>(SAMPLE_DOCUMENTS);
+  const [activeDocId, setActiveDocState] = useState<string | null>(SAMPLE_DOCUMENTS[0].id);
+  const [view, setView] = useState<'study' | 'library'>('study');
+  const [settings, setSettings] = useState<AISettings>(DEFAULT_AI_SETTINGS);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isInspectOpen, setIsInspectOpen] = useState(false);
+  const [inspectingDoc, setInspectingDoc] = useState<DocumentSource | null>(null);
+
+  useEffect(() => {
+    const docs = getDocuments();
+    setDocuments(docs);
+
+    const activeId = getActiveDocId();
+    if (activeId && docs.some(d => d.id === activeId)) {
+      setActiveDocState(activeId);
+      setView('study');
+    } else if (docs.length > 0) {
+      setActiveDocState(docs[0].id);
+      setView('study');
+    } else {
+      setView('library');
+    }
+
+    setSettings(getAISettings());
+  }, []);
+
+  const handleSelectDocument = (docId: string) => {
+    setActiveDocState(docId);
+    setActiveDocId(docId);
+    setView('study');
+  };
+
+  const handleSaveDocument = (doc: DocumentSource) => {
+    saveDocument(doc);
+    const updatedDocs = getDocuments();
+    setDocuments(updatedDocs);
+    setActiveDocState(doc.id);
+    setView('study');
+  };
+
+  const handleDeleteDocument = (docId: string) => {
+    deleteDocument(docId);
+    const updatedDocs = getDocuments();
+    setDocuments(updatedDocs);
+    if (activeDocId === docId) {
+      if (updatedDocs.length > 0) {
+        setActiveDocState(updatedDocs[0].id);
+      } else {
+        setActiveDocState(null);
+        setView('library');
+      }
+    }
+  };
+
+  const handleUpdateDocument = (updatedDoc: DocumentSource) => {
+    saveDocument(updatedDoc);
+    const updatedDocs = getDocuments();
+    setDocuments(updatedDocs);
+    if (inspectingDoc?.id === updatedDoc.id) {
+      setInspectingDoc(updatedDoc);
+    }
+  };
+
+  const handleSaveSettings = (newSettings: AISettings) => {
+    saveAISettings(newSettings);
+    setSettings(newSettings);
+  };
+
+  const handleDataReset = () => {
+    const freshDocs = getDocuments();
+    setDocuments(freshDocs);
+    if (freshDocs.length > 0) {
+      setActiveDocState(freshDocs[0].id);
+    } else {
+      setActiveDocState(null);
+      setView('library');
+    }
+  };
+
+  const handleOpenInspect = (doc?: DocumentSource) => {
+    const targetDoc = doc || activeDocument;
+    if (targetDoc) {
+      setInspectingDoc(targetDoc);
+      setIsInspectOpen(true);
+    }
+  };
+  const activeDocument = documents.find(d => d.id === activeDocId) || null;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="min-h-screen bg-background flex flex-col font-sans">
+      <Header
+        documents={documents}
+        activeDocument={activeDocument}
+        onSelectDocument={handleSelectDocument}
+        onOpenLibrary={() => setView('library')}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        settings={settings}
+      />
+
+      <main className="flex-1">
+        {view === 'library' || !activeDocument ? (
+          <LibraryView
+            documents={documents}
+            activeDocId={activeDocId}
+            onSelectDocument={handleSelectDocument}
+            onSaveDocument={handleSaveDocument}
+            onDeleteDocument={handleDeleteDocument}
+            onInspectDocument={handleOpenInspect}
+          />
+        ) : (
+          <StudySpace
+            document={activeDocument}
+            settings={settings}
+            onInspectDocument={() => handleOpenInspect(activeDocument)}
+            onUpdateDocument={handleUpdateDocument}
+          />
+        )}
       </main>
+
+      {/* Model & Privacy Settings Modal */}
+      <ModelSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
+        onSaveSettings={handleSaveSettings}
+        onDataReset={handleDataReset}
+      />
+
+      {/* Raw Extraction Inspector Modal */}
+      {inspectingDoc && (
+        <InspectionModal
+          isOpen={isInspectOpen}
+          onClose={() => {
+            setIsInspectOpen(false);
+            setInspectingDoc(null);
+          }}
+          document={inspectingDoc}
+          onUpdateDocument={handleUpdateDocument}
+        />
+      )}
     </div>
   );
 }
