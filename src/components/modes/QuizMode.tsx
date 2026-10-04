@@ -15,6 +15,7 @@ import { DocumentSource, QuizQuestion, QuizSession, QuizAttempt, AISettings, Fla
 import { generateQuiz } from '@/lib/aiEngine';
 import { saveQuizSession, addFlashcards } from '@/lib/storage';
 import { ColoredButton } from '@/components/custom/colored-button';
+import { CustomSelect } from '@/components/custom/CustomSelect';
 import { Layers } from 'lucide-react';
 
 interface QuizModeProps {
@@ -188,28 +189,28 @@ export function QuizMode({
       {/* Quiz Streamlined Top Bar */}
       <div className="flex items-center justify-between gap-3 text-xs shrink-0">
         <div className="flex items-center gap-2">
-          <select
+          <CustomSelect
             value={selectedTopicId}
-            onChange={(e) => setSelectedTopicId(e.target.value)}
+            onChange={setSelectedTopicId}
             disabled={loading}
-            className="px-2 py-1 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-lg text-foreground focus:outline-none cursor-pointer"
-          >
-            <option value="all">All Topics ({document.topics.length})</option>
-            {document.topics.map(t => (
-              <option key={t.id} value={t.id}>{t.title}</option>
-            ))}
-          </select>
+            size="sm"
+            options={[
+              { value: 'all', label: `All Topics (${document.topics.length})` },
+              ...document.topics.map((t) => ({ value: t.id, label: t.title }))
+            ]}
+          />
 
-          <select
+          <CustomSelect
             value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value as any)}
+            onChange={(val) => setDifficulty(val as any)}
             disabled={loading}
-            className="px-2 py-1 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-lg text-foreground focus:outline-none cursor-pointer"
-          >
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
+            size="sm"
+            options={[
+              { value: 'easy', label: 'Easy' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'hard', label: 'Hard' }
+            ]}
+          />
         </div>
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono">

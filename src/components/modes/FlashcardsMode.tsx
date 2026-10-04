@@ -22,6 +22,7 @@ import {
   rateFlashcard 
 } from '@/lib/storage';
 import { ColoredButton } from '@/components/custom/colored-button';
+import { CustomSelect } from '@/components/custom/CustomSelect';
 
 interface FlashcardsModeProps {
   document: DocumentSource;
@@ -168,16 +169,16 @@ export function FlashcardsMode({
       {/* Top Deck Streamlined Bar */}
       <div className="flex items-center justify-between gap-3 text-xs shrink-0">
         <div className="flex items-center gap-2">
-          <select
+          <CustomSelect
             value={selectedTopicId}
-            onChange={(e) => setSelectedTopicId(e.target.value)}
-            className="px-2 py-1 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-lg text-foreground focus:outline-none cursor-pointer"
-          >
-            <option value="all">All Topics ({document.topics.length})</option>
-            {document.topics.map(t => (
-              <option key={t.id} value={t.id}>{t.title}</option>
-            ))}
-          </select>
+            onChange={setSelectedTopicId}
+            disabled={generating}
+            size="sm"
+            options={[
+              { value: 'all', label: `All Topics (${document.topics.length})` },
+              ...document.topics.map((t) => ({ value: t.id, label: t.title }))
+            ]}
+          />
 
           <button
             type="button"
@@ -461,16 +462,18 @@ export function FlashcardsMode({
 
                 <div>
                   <label className="block text-muted-foreground mb-1">Card Type</label>
-                  <select
+                  <CustomSelect
                     value={editingCard.cardType}
-                    onChange={(e) => setEditingCard({ ...editingCard, cardType: e.target.value as any })}
-                    className="w-full p-2 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none"
-                  >
-                    <option value="concept">Concept</option>
-                    <option value="definition">Definition</option>
-                    <option value="fact">Key Fact</option>
-                    <option value="application">Application</option>
-                  </select>
+                    onChange={(val) => setEditingCard({ ...editingCard, cardType: val as any })}
+                    className="w-full"
+                    triggerClassName="w-full justify-between"
+                    options={[
+                      { value: 'concept', label: 'Concept' },
+                      { value: 'definition', label: 'Definition' },
+                      { value: 'fact', label: 'Key Fact' },
+                      { value: 'application', label: 'Application' }
+                    ]}
+                  />
                 </div>
               </div>
             </div>

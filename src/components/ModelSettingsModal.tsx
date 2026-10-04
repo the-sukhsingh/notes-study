@@ -17,6 +17,7 @@ import { AISettings } from '@/lib/types';
 import { testOllamaConnection } from '@/lib/aiEngine';
 import { exportBackupJson, importBackupJson, purgeAllUserData } from '@/lib/storage';
 import { ColoredButton } from './custom/colored-button';
+import { CustomSelect } from './custom/CustomSelect';
 
 interface ModelSettingsModalProps {
   isOpen: boolean;
@@ -216,15 +217,32 @@ export function ModelSettingsModal({
               </div>
             )}
 
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-mono">Model Name</label>
-              <input
-                type="text"
-                value={localSettings.ollamaModel}
-                onChange={(e) => setLocalSettings(prev => ({ ...prev, ollamaModel: e.target.value }))}
-                className="w-full px-3 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-xl border border-neutral-200/60 dark:border-neutral-700/60 text-foreground font-mono focus:outline-none"
-                placeholder="llama3.2"
-              />
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground font-mono">Model Selection</label>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <CustomSelect
+                  value={localSettings.ollamaModel}
+                  onChange={(val) => setLocalSettings(prev => ({ ...prev, ollamaModel: val }))}
+                  className="flex-1"
+                  triggerClassName="w-full justify-between"
+                  options={[
+                    ...ollamaStatus.models.map(m => ({ value: m, label: m, badge: 'Installed' })),
+                    ...(!ollamaStatus.models.includes('llama3.2') ? [{ value: 'llama3.2', label: 'llama3.2', badge: 'Default' }] : []),
+                    ...(!ollamaStatus.models.includes('mistral') ? [{ value: 'mistral', label: 'mistral', badge: 'Fast' }] : []),
+                    ...(!ollamaStatus.models.includes('qwen2.5') ? [{ value: 'qwen2.5', label: 'qwen2.5', badge: 'Multilingual' }] : []),
+                    ...(!ollamaStatus.models.includes('deepseek-r1') ? [{ value: 'deepseek-r1', label: 'deepseek-r1', badge: 'Reasoning' }] : []),
+                    ...(!ollamaStatus.models.includes('phi3') ? [{ value: 'phi3', label: 'phi3', badge: 'Compact' }] : []),
+                  ]}
+                />
+                <input
+                  type="text"
+                  value={localSettings.ollamaModel}
+                  onChange={(e) => setLocalSettings(prev => ({ ...prev, ollamaModel: e.target.value }))}
+                  className="sm:w-36 px-3 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-xl border border-neutral-200/60 dark:border-neutral-700/60 text-foreground font-mono focus:outline-none placeholder:text-muted-foreground/60"
+                  placeholder="custom model"
+                  title="Or type custom model name"
+                />
+              </div>
             </div>
           </div>
         )}
