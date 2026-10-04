@@ -214,13 +214,17 @@ export function Header({
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="text-muted-foreground/30 font-light select-none">/</span>
-              <span className="font-mono text-[11px] hidden sm:inline flex items-center gap-1">
-                <Layers className="size-3 text-indigo-500" />
+            <button
+              type="button"
+              onClick={onOpenLibrary}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer py-1 px-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-850"
+              title="Open Notes Library"
+            >
+              <Layers className="size-3 text-indigo-500" />
+              <span className="font-mono text-[11px]">
                 {documents.length} {documents.length === 1 ? 'document' : 'documents'}
               </span>
-            </div>
+            </button>
           )}
         </div>
 

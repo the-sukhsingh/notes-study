@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Check } from 'lucide-react';
 
 export interface SelectOption {
@@ -22,6 +23,17 @@ interface CustomSelectProps {
   ariaLabel?: string;
 }
 
+interface DropdownPos {
+  top?: number;
+  bottom?: number;
+  left: number;
+  width: number;
+  placement: 'top' | 'bottom';
+}
+
+const DROPDOWN_GAP = 6;
+const DROPDOWN_MAX_HEIGHT = 240;
+
 export function CustomSelect({
   value,
   onChange,
@@ -35,13 +47,53 @@ export function CustomSelect({
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<DropdownPos | null>(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
+
+  const updateDropdownPos = useCallback(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom - DROPDOWN_GAP;
+    if (spaceBelow >= DROPDOWN_MAX_HEIGHT) {
+      setDropdownPos({
+        top: rect.bottom + DROPDOWN_GAP,
+        left: rect.left,
+        width: rect.width,
+        placement: 'bottom',
+      });
+    } else {
+      setDropdownPos({
+        bottom: window.innerHeight - rect.top + DROPDOWN_GAP,
+        left: rect.left,
+        width: rect.width,
+        placement: 'top',
+      });
+    }
+  }, []);
+
+  // Reposition on any scroll (capture phase catches nested scroll containers) or resize
+  useEffect(() => {
+    if (!isOpen) return;
+    updateDropdownPos();
+    window.addEventListener('scroll', updateDropdownPos, true);
+    window.addEventListener('resize', updateDropdownPos);
+    return () => {
+      window.removeEventListener('scroll', updateDropdownPos, true);
+      window.removeEventListener('resize', updateDropdownPos);
+    };
+  }, [isOpen, updateDropdownPos]);
 
   // Close when clicking outside
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideTrigger = containerRef.current?.contains(target);
+      const insideDropdown = dropdownRef.current?.contains(target);
+      if (!insideTrigger && !insideDropdown) {
         setIsOpen(false);
       }
     };
@@ -77,12 +129,13 @@ export function CustomSelect({
   const isSmall = size === 'sm';
 
   return (
-    <div 
-      ref={containerRef} 
+    <div
+      ref={containerRef}
       className={`relative inline-block text-left ${className}`}
     >
       {/* Trigger Button */}
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
@@ -90,12 +143,12 @@ export function CustomSelect({
         aria-expanded={isOpen}
         aria-label={ariaLabel || placeholder}
         className={`group flex items-center justify-between gap-2 rounded-xl transition-all duration-150 cursor-pointer outline-none select-none text-left ${
-          isSmall 
-            ? 'px-2.5 py-1 text-xs font-medium' 
+          isSmall
+            ? 'px-2.5 py-1 text-xs font-medium'
             : 'px-3 py-1.5 text-xs font-medium'
         } ${
-          disabled 
-            ? 'opacity-50 cursor-not-allowed bg-neutral-100 dark:bg-neutral-800 text-muted-foreground' 
+          disabled
+            ? 'opacity-50 cursor-not-allowed bg-neutral-100 dark:bg-neutral-800 text-muted-foreground'
             : 'bg-neutral-100/80 hover:bg-neutral-200/70 dark:bg-neutral-800/70 dark:hover:bg-neutral-700/60 text-foreground border border-neutral-200/70 dark:border-neutral-700/70 hover:border-neutral-300 dark:hover:border-neutral-600 focus-visible:ring-2 focus-visible:ring-amber-500/30'
         } ${triggerClassName}`}
       >
@@ -115,18 +168,27 @@ export function CustomSelect({
           )}
         </div>
 
-        <ChevronDown 
+        <ChevronDown
           className={`size-3.5 text-muted-foreground/80 group-hover:text-foreground transition-transform duration-200 shrink-0 ${
             isOpen ? 'rotate-180 text-foreground' : ''
-          }`} 
+          }`}
         />
       </button>
 
-      {/* Floating Dropdown Menu */}
-      {isOpen && (
+      {/* Floating Dropdown Menu (ported to body so it escapes overflow/overlay stacking contexts) */}
+      {isOpen && dropdownPos && createPortal(
         <div
+          ref={dropdownRef}
           role="listbox"
-          className="absolute z-50 mt-1.5 min-w-[170px] max-w-[280px] w-max max-h-60 overflow-y-auto no-scrollbar rounded-2xl bg-popover/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200/80 dark:border-neutral-800/80 shadow-[0_12px_36px_-6px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_36px_-6px_rgba(0,0,0,0.6)] p-1.5 animate-in fade-in zoom-in-95 duration-100 origin-top-left"
+          className={`fixed z-[70] min-w-[170px] max-w-[280px] max-h-60 overflow-y-auto no-scrollbar rounded-2xl bg-popover/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200/80 dark:border-neutral-800/80 shadow-[0_12px_36px_-6px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_36px_-6px_rgba(0,0,0,0.6)] p-1.5 animate-in fade-in zoom-in-95 duration-100 ${
+            dropdownPos.placement === 'bottom' ? 'origin-top-left' : 'origin-bottom-left'
+          }`}
+          style={{
+            top: dropdownPos.top,
+            bottom: dropdownPos.bottom,
+            left: dropdownPos.left,
+            width: dropdownPos.width,
+          }}
         >
           {options.map((option) => {
             const isSelected = option.value === value;
@@ -165,7 +227,8 @@ export function CustomSelect({
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
