@@ -423,6 +423,22 @@ export function FlashcardsMode({
                 </ColoredButton>
               </div>
             )}
+
+            {/* Keyboard Shortcuts Legend */}
+            <div className="pt-3 flex flex-wrap items-center justify-center gap-3 text-[11px] font-mono text-muted-foreground/70">
+              <span className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 text-[10px]">Space</kbd>
+                Flip
+              </span>
+              <span className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 text-[10px]">1–4</kbd>
+                Rate Recall
+              </span>
+              <span className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 text-[10px]">← / →</kbd>
+                Navigate
+              </span>
+            </div>
           </div>
         </div>
       ) : (

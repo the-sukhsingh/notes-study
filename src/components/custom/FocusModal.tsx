@@ -138,6 +138,9 @@ export function FocusModal({
 
               <div className="flex items-center gap-2 shrink-0">
                 {headerActions}
+                <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono rounded bg-neutral-100 dark:bg-neutral-800 text-muted-foreground border border-neutral-200/60 dark:border-neutral-700/60 select-none">
+                  ESC
+                </kbd>
                 <button
                   type="button"
                   onClick={onClose}
