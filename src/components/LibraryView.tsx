@@ -51,6 +51,8 @@ export function LibraryView({
   const [pastedTitle, setPastedTitle] = useState('');
   const [pastedText, setPastedText] = useState('');
   const [searchFilter, setSearchFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'pdf' | 'text'>('all');
+  const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (file: File) => {
@@ -91,6 +93,34 @@ export function LibraryView({
     }
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  };
+
+  const handleRestoreSamples = () => {
+    SAMPLE_DOCUMENTS.forEach(doc => {
+      onSaveDocument(doc);
+    });
+    onSelectDocument(SAMPLE_DOCUMENTS[0].id);
+  };
+
   const handlePasteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!pastedText.trim()) return;
@@ -118,10 +148,16 @@ export function LibraryView({
     onSelectDocument(newDoc.id);
   };
 
-  const filteredDocs = documents.filter(d => 
-    d.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
-    d.fileName.toLowerCase().includes(searchFilter.toLowerCase())
-  );
+  const filteredDocs = documents.filter(d => {
+    const matchesSearch = d.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      d.fileName.toLowerCase().includes(searchFilter.toLowerCase());
+    const matchesType = typeFilter === 'all' || d.fileType === typeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  const totalPages = documents.reduce((acc, d) => acc + d.pageCount, 0);
+  const totalWords = documents.reduce((acc, d) => acc + d.wordCount, 0);
+  const totalTopics = documents.reduce((acc, d) => acc + d.topics.length, 0);
 
   return (
     <div className="relative min-h-screen">
@@ -175,29 +211,112 @@ export function LibraryView({
           </div>
         </div>
 
-        {/* Processing Indicator */}
-        {isProcessing && (
-          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-3 animate-pulse">
-            <div className="w-4 h-4 rounded-full border-2 border-amber-500 border-t-transparent animate-spin shrink-0" />
-            <span className="font-medium">{processingStatus}</span>
+        {/* Executive Study Metrics */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          <div className="p-4 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 space-y-1">
+            <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/70">
+              Documents
+            </span>
+            <div className="text-2xl font-bold font-mono text-foreground">
+              {documents.length}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Indexed in memory</p>
           </div>
-        )}
 
-        {/* Search Bar & Document Counter */}
+          <div className="p-4 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 space-y-1">
+            <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/70">
+              Pages Studied
+            </span>
+            <div className="text-2xl font-bold font-mono text-foreground">
+              {totalPages}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Extracted pages</p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 space-y-1">
+            <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/70">
+              Words Parsed
+            </span>
+            <div className="text-2xl font-bold font-mono text-foreground">
+              {totalWords.toLocaleString()}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Total corpus</p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 space-y-1">
+            <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/70">
+              Core Topics
+            </span>
+            <div className="text-2xl font-bold font-mono text-foreground">
+              {totalTopics}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Knowledge nodes</p>
+          </div>
+        </div>
+
+        {/* Drag and Drop Zone */}
+        <div
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onClick={() => fileInputRef.current?.click()}
+          className={`py-6 px-4 rounded-2xl border border-dashed transition-all text-center flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
+            dragActive
+              ? "border-amber-400 bg-amber-50/70 dark:bg-amber-950/40 text-amber-950 dark:text-amber-200 scale-[1.01]"
+              : "border-neutral-200/80 dark:border-neutral-800/80 hover:border-neutral-300 dark:hover:border-neutral-700 bg-neutral-50/30 dark:bg-neutral-900/20"
+          }`}
+        >
+          <Upload className={`w-5 h-5 ${dragActive ? 'animate-bounce text-amber-500' : 'text-muted-foreground/80'}`} />
+          <p className="text-xs text-muted-foreground font-medium">
+            Drag and drop course PDFs or text notes here, or <span className="text-amber-600 dark:text-amber-400 underline underline-offset-4">browse files</span>
+          </p>
+        </div>
+
+        {/* Search Bar, Filters & Document Counter */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search documents by title or filename..."
-              value={searchFilter}
-              onChange={(e) => setSearchFilter(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-xl text-foreground border border-neutral-200/60 dark:border-neutral-700/60 focus:outline-none placeholder:text-muted-foreground/70"
-            />
+          <div className="flex items-center gap-3 flex-wrap flex-1">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search notes..."
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-xl text-foreground border border-neutral-200/60 dark:border-neutral-700/60 focus:outline-none placeholder:text-muted-foreground/70"
+              />
+            </div>
+
+            <div className="flex items-center gap-1 bg-neutral-100/60 dark:bg-neutral-800/50 p-0.5 rounded-xl border border-neutral-200/50 dark:border-neutral-700/50">
+              {(['all', 'pdf', 'text'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTypeFilter(t)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-all cursor-pointer ${
+                    typeFilter === t
+                      ? 'bg-white dark:bg-neutral-700 text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {t === 'all' ? 'All' : t.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="text-xs text-muted-foreground font-mono">
-            {filteredDocs.length} {filteredDocs.length === 1 ? 'document' : 'documents'}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono">
+            {documents.length < SAMPLE_DOCUMENTS.length && (
+              <button
+                type="button"
+                onClick={handleRestoreSamples}
+                className="text-[11px] hover:text-foreground underline decoration-neutral-300 dark:decoration-neutral-700 cursor-pointer"
+              >
+                Restore Samples
+              </button>
+            )}
+            <span>
+              {filteredDocs.length} {filteredDocs.length === 1 ? 'document' : 'documents'}
+            </span>
           </div>
         </div>
 
