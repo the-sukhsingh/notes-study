@@ -10,9 +10,12 @@ import {
   RotateCcw, 
   FileSearch, 
   FileText,
-  ChevronRight
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeft
 } from 'lucide-react';
-import { DocumentSource, AISettings } from '@/lib/types';
+import { DocumentSource, AISettings, Flashcard } from '@/lib/types';
+import { addFlashcard } from '@/lib/storage';
 import { SourceReaderMode } from './modes/SourceReaderMode';
 import { ExplainMode } from './modes/ExplainMode';
 import { AskMode } from './modes/AskMode';
@@ -39,6 +42,7 @@ export function StudySpace({
 }: StudySpaceProps) {
   const [activePage, setActivePage] = useState<number>(1);
   const [activeFocusModal, setActiveFocusModal] = useState<FocusModalType>(null);
+  const [isOutlineVisible, setIsOutlineVisible] = useState(true);
   const [selectedTopicForFocus, setSelectedTopicForFocus] = useState<string | undefined>(undefined);
   const [explainInitialConcept, setExplainInitialConcept] = useState<string | undefined>(undefined);
 
@@ -47,8 +51,29 @@ export function StudySpace({
   };
 
   const handleExplainPassage = (passage: string, page: number) => {
-    setExplainInitialConcept(passage.slice(0, 120));
+    setExplainInitialConcept(passage.slice(0, 140));
     setActiveFocusModal('explain');
+  };
+
+  const handleAskPassage = (passage: string, page: number) => {
+    setActiveFocusModal('ask');
+  };
+
+  const handleCreateCardFromPassage = (passage: string, page: number) => {
+    const newCard: Flashcard = {
+      id: `passage-card-${Date.now()}`,
+      docId: document.id,
+      front: `Key Concept (Page ${page}):`,
+      back: passage,
+      cardType: 'concept',
+      sourcePage: page,
+      sourcePassage: passage,
+      reps: 0,
+      intervalDays: 1,
+      isUserEdited: true
+    };
+    addFlashcard(newCard);
+    setActiveFocusModal('flashcards');
   };
 
   const handleLaunchTopicQuiz = (topicId?: string) => {
@@ -153,60 +178,74 @@ export function StudySpace({
               <Sparkles className="w-3.5 h-3.5" />
               Explain
             </ColoredButton>
+
+            <ColoredButton
+              color="neutral"
+              size="default"
+              onClick={() => setIsOutlineVisible(!isOutlineVisible)}
+              title={isOutlineVisible ? "Focus on Reading (Zen Mode)" : "Show Document Outline"}
+            >
+              {isOutlineVisible ? <PanelLeftClose className="w-3.5 h-3.5" /> : <PanelLeft className="w-3.5 h-3.5" />}
+              {isOutlineVisible ? 'Zen Mode' : 'Outline'}
+            </ColoredButton>
           </div>
         </div>
 
         {/* Clean, Tranquil Reading Layout (No cluttered split dashboards) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Quiet, Minimalist Table of Contents / Outline */}
-          <aside className="lg:col-span-3 space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground/80 uppercase tracking-wider font-semibold">
-                <span>Outline</span>
-                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-500">
-                  {document.topics.length} topics
-                </span>
-              </div>
+          {isOutlineVisible && (
+            <aside className="lg:col-span-3 space-y-4 animate-in fade-in duration-150">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground/80 uppercase tracking-wider font-semibold">
+                  <span>Outline</span>
+                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-500">
+                    {document.topics.length} topics
+                  </span>
+                </div>
 
-              <nav className="space-y-1">
-                {document.topics.map((t) => {
-                  const targetPage = t.pageReferences[0] || 1;
-                  const isCurrent = activePage === targetPage;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => handleJumpToPage(targetPage)}
-                      className={`w-full text-left py-2 px-3 rounded-xl transition-all group block text-xs cursor-pointer ${
-                        isCurrent
-                          ? 'bg-neutral-200/70 dark:bg-neutral-800/80 font-medium text-foreground'
-                          : 'hover:bg-neutral-100/60 dark:hover:bg-neutral-800/50 text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <div className="flex items-baseline justify-between gap-1">
-                        <span className="group-hover:underline truncate">
-                          {t.title}
-                        </span>
-                        <span className="text-[10px] font-mono opacity-60 shrink-0">
-                          p. {t.pageReferences.join(', ')}
-                        </span>
-                      </div>
-                      <p className="text-[11px] opacity-75 line-clamp-1 mt-0.5 font-normal">
-                        {t.summary}
-                      </p>
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-          </aside>
+                <nav className="space-y-1">
+                  {document.topics.map((t) => {
+                    const targetPage = t.pageReferences[0] || 1;
+                    const isCurrent = activePage === targetPage;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => handleJumpToPage(targetPage)}
+                        className={`w-full text-left py-2 px-3 rounded-xl transition-all group block text-xs cursor-pointer ${
+                          isCurrent
+                            ? 'bg-neutral-200/70 dark:bg-neutral-800/80 font-medium text-foreground'
+                            : 'hover:bg-neutral-100/60 dark:hover:bg-neutral-800/50 text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <div className="flex items-baseline justify-between gap-1">
+                          <span className="group-hover:underline truncate">
+                            {t.title}
+                          </span>
+                          <span className="text-[10px] font-mono opacity-60 shrink-0">
+                            p. {t.pageReferences.join(', ')}
+                          </span>
+                        </div>
+                        <p className="text-[11px] opacity-75 line-clamp-1 mt-0.5 font-normal">
+                          {t.summary}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            </aside>
+          )}
 
           {/* Right Column: Serene Document Reading Canvas */}
-          <section className="lg:col-span-9 min-h-[550px] p-6 sm:p-8 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 shadow-xs">
+          <section className={`${isOutlineVisible ? 'lg:col-span-9' : 'lg:col-span-12 max-w-4xl mx-auto w-full'} min-h-[550px] p-6 sm:p-8 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 shadow-xs transition-all`}>
             <SourceReaderMode
               document={document}
               activePageNumber={activePage}
               onPageChange={setActivePage}
               onExplainPassage={handleExplainPassage}
+              onAskPassage={handleAskPassage}
+              onCreateCardFromPassage={handleCreateCardFromPassage}
             />
           </section>
         </div>
