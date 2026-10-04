@@ -12,20 +12,21 @@ import {
   FileText,
   ChevronRight,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  Bot
 } from 'lucide-react';
 import { DocumentSource, AISettings, Flashcard } from '@/lib/types';
-import { addFlashcard } from '@/lib/storage';
+import { addFlashcard, getFlashcardsForDoc } from '@/lib/storage';
 import { SourceReaderMode } from './modes/SourceReaderMode';
 import { ExplainMode } from './modes/ExplainMode';
-import { AskMode } from './modes/AskMode';
+import { AskChatbotSidebar } from './modes/AskChatbotSidebar';
 import { FlashcardsMode } from './modes/FlashcardsMode';
 import { QuizMode } from './modes/QuizMode';
 import { SmartRevisionMode } from './modes/SmartRevisionMode';
 import { FocusModal } from './custom/FocusModal';
 import { ColoredButton } from './custom/colored-button';
 
-export type FocusModalType = 'flashcards' | 'quiz' | 'revision' | 'ask' | 'explain' | null;
+export type FocusModalType = 'flashcards' | 'quiz' | 'revision' | 'explain' | null;
 
 interface StudySpaceProps {
   document: DocumentSource;
@@ -45,6 +46,8 @@ export function StudySpace({
   const [isOutlineVisible, setIsOutlineVisible] = useState(true);
   const [selectedTopicForFocus, setSelectedTopicForFocus] = useState<string | undefined>(undefined);
   const [explainInitialConcept, setExplainInitialConcept] = useState<string | undefined>(undefined);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [chatbotInitialQuery, setChatbotInitialQuery] = useState<string | undefined>(undefined);
 
   const handleJumpToPage = (pageNumber: number) => {
     setActivePage(pageNumber);
@@ -56,7 +59,8 @@ export function StudySpace({
   };
 
   const handleAskPassage = (passage: string, page: number) => {
-    setActiveFocusModal('ask');
+    setChatbotInitialQuery(`Can you explain this excerpt from Page ${page}: "${passage.slice(0, 150)}..."?`);
+    setIsChatbotOpen(true);
   };
 
   const handleCreateCardFromPassage = (passage: string, page: number) => {
@@ -91,80 +95,108 @@ export function StudySpace({
       {/* Subtle, soft ambient background inspired by resumely */}
       <div className="pointer-events-none fixed inset-0 noise opacity-40 bg-primary/5 dark:opacity-25" />
 
-      <main className="relative z-10 max-w-6xl mx-auto px-6 pt-8 pb-20 space-y-8">
-        {/* Document Header & Focus Mode Action Bar */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 pb-2">
-          <div className="space-y-2 min-w-0 max-w-2xl">
-            <h1 className="font-serif text-2xl sm:text-3xl font-normal tracking-tight text-foreground text-wrap balance leading-snug">
-              {document.title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-mono">
-              <span>{document.pageCount} pages</span>
-              <span className="opacity-40">•</span>
-              <span>{document.wordCount.toLocaleString()} words</span>
-              <span className="opacity-40">•</span>
-              <span className="truncate max-w-[220px] opacity-80">{document.fileName}</span>
-              <span className="opacity-40">•</span>
-              <button
-                type="button"
-                onClick={onInspectDocument}
-                className="hover:text-foreground inline-flex items-center gap-1 transition-colors cursor-pointer text-muted-foreground underline underline-offset-4 decoration-neutral-300 dark:decoration-neutral-700"
+      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-16 space-y-6">
+        {/* ─── Resumely-style Master Anchor Header Card ─── */}
+        <section className="group relative rounded-[28px] bg-gradient-to-b from-card/90 to-card/40 dark:from-card/40 dark:to-card/10 p-5 sm:p-6 transition-all duration-200 shadow-xs overflow-hidden outline-1 outline-neutral-200/60 dark:outline-neutral-800/60">
+          <div className="absolute inset-0 blur-2xl pointer-events-none">
+            <span className="size-80 rounded-full bg-violet-200/40 dark:bg-violet-400/15 inline-flex absolute -left-5 -translate-y-1/2" />
+            <span className="size-80 rounded-full bg-emerald-200/40 dark:bg-emerald-400/10 inline-flex absolute -right-5 -translate-y-1/3" />
+          </div>
+
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
+            <div className="space-y-1.5 min-w-0 max-w-2xl">
+              <div>
+                <h1 className="text-base sm:text-lg font-semibold tracking-tight text-foreground truncate">
+                  {document.title}
+                </h1>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-lg">
+                  {document.fileName} • Private local workspace
+                </p>
+              </div>
+
+              {/* Structured Stat Chips matching Resumely style */}
+              <div className="flex flex-wrap items-center gap-3 pt-0.5">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground/90">
+                  <strong className="text-foreground font-semibold font-mono">{document.pageCount}</strong>
+                  <span className="text-muted-foreground">pages</span>
+                </span>
+                <span className="text-neutral-300 dark:text-neutral-700">•</span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground/90">
+                  <strong className="text-foreground font-semibold font-mono">{document.wordCount.toLocaleString()}</strong>
+                  <span className="text-muted-foreground">words</span>
+                </span>
+                <span className="text-neutral-300 dark:text-neutral-700">•</span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground/90">
+                  <strong className="text-foreground font-semibold font-mono">{document.topics.length}</strong>
+                  <span className="text-muted-foreground">topics</span>
+                </span>
+                <span className="text-neutral-300 dark:text-neutral-700">•</span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground/90">
+                  <strong className="text-foreground font-semibold font-mono">{getFlashcardsForDoc(document.id).length || 6}</strong>
+                  <span className="text-muted-foreground">cards</span>
+                </span>
+                <span className="text-neutral-300 dark:text-neutral-700">•</span>
+                <button
+                  type="button"
+                  onClick={onInspectDocument}
+                  className="hover:text-foreground inline-flex items-center gap-1 transition-colors cursor-pointer text-muted-foreground text-[11px] underline underline-offset-4 decoration-neutral-300 dark:decoration-neutral-700"
+                >
+                  <FileSearch className="w-3 h-3" />
+                  Raw Text
+                </button>
+              </div>
+            </div>
+
+            {/* Calm Learning Tool Buttons */}
+            <div className="flex flex-wrap items-center gap-2 shrink-0 self-start lg:self-center">
+              <ColoredButton
+                color="indigo"
+                size="default"
+                onClick={() => {
+                  setSelectedTopicForFocus(undefined);
+                  setActiveFocusModal('flashcards');
+                }}
+                title="Launch Flashcards Recall Session"
               >
-                <FileSearch className="w-3 h-3" />
-                Raw Text
-              </button>
+                <Layers className="w-3.5 h-3.5" />
+                Flashcards
+              </ColoredButton>
+
+              <ColoredButton
+                color="emerald"
+                size="default"
+                onClick={() => {
+                  setSelectedTopicForFocus(undefined);
+                  setActiveFocusModal('quiz');
+                }}
+                title="Launch Interactive Quiz"
+              >
+                <CheckSquare className="w-3.5 h-3.5" />
+                Take Quiz
+              </ColoredButton>
+
+              <ColoredButton
+                color="amber"
+                size="default"
+                onClick={() => setActiveFocusModal('revision')}
+                title="Open Smart Revision"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Revision
+              </ColoredButton>
+
+              <ColoredButton
+                color={isChatbotOpen ? "cyan" : "neutral"}
+                size="default"
+                onClick={() => setIsChatbotOpen((prev) => !prev)}
+                title="Ask Notes Chatbot"
+              >
+                <Bot className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                Ask Notes
+              </ColoredButton>
             </div>
           </div>
-
-          {/* Calm Focus Mode Trigger Buttons - Only Relevant Learning Tools */}
-          <div className="flex flex-wrap items-center gap-2 shrink-0 pt-1 lg:pt-0">
-            <ColoredButton
-              color="indigo"
-              size="default"
-              onClick={() => {
-                setSelectedTopicForFocus(undefined);
-                setActiveFocusModal('flashcards');
-              }}
-              title="Launch Flashcards Recall Session"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              Flashcards
-            </ColoredButton>
-
-            <ColoredButton
-              color="emerald"
-              size="default"
-              onClick={() => {
-                setSelectedTopicForFocus(undefined);
-                setActiveFocusModal('quiz');
-              }}
-              title="Launch Interactive Quiz"
-            >
-              <CheckSquare className="w-3.5 h-3.5" />
-              Take Quiz
-            </ColoredButton>
-
-            <ColoredButton
-              color="amber"
-              size="default"
-              onClick={() => setActiveFocusModal('revision')}
-              title="Open Smart Revision"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Revision
-            </ColoredButton>
-
-            <ColoredButton
-              color="neutral"
-              size="default"
-              onClick={() => setActiveFocusModal('ask')}
-              title="Ask Notes Questions"
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-              Ask Notes
-            </ColoredButton>
-          </div>
-        </div>
+        </section>
 
         {/* Clean, Tranquil Reading Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -326,29 +358,16 @@ export function StudySpace({
         />
       </FocusModal>
 
-      {/* 4. Ask Notes Focus Modal */}
-      <FocusModal
-        isOpen={activeFocusModal === 'ask'}
-        onClose={() => setActiveFocusModal(null)}
-        title="Ask My Notes"
-        subtitle="Grounded Q&A with exact quote references"
-        color="cyan"
-        maxWidth="max-w-2xl"
-        badge={
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-100 text-cyan-900 dark:bg-cyan-950/80 dark:text-cyan-300">
-            Grounded Q&A
-          </span>
-        }
-      >
-        <AskMode
-          document={document}
-          settings={settings}
-          onJumpToPage={(p) => {
-            setActivePage(p);
-            setActiveFocusModal(null);
-          }}
-        />
-      </FocusModal>
+      {/* 4. Ask Notes Right-Side Slide-Over Chatbot */}
+      <AskChatbotSidebar
+        isOpen={isChatbotOpen}
+        onClose={() => setIsChatbotOpen(false)}
+        document={document}
+        settings={settings}
+        onJumpToPage={(p) => setActivePage(p)}
+        initialQuery={chatbotInitialQuery}
+        onClearInitialQuery={() => setChatbotInitialQuery(undefined)}
+      />
 
       {/* 5. Concept Explainer Focus Modal */}
       <FocusModal

@@ -164,117 +164,118 @@ export function LibraryView({
       {/* Subtle ambient noise background */}
       <div className="pointer-events-none fixed inset-0 noise opacity-40 bg-primary/5 dark:opacity-25" />
 
-      <main className="relative z-10 max-w-5xl mx-auto px-6 pt-12 pb-24 space-y-10">
-        {/* Header & Main Primary Action */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-neutral-200/60 dark:border-neutral-800/60">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-              Study Library
-            </h1>
-            <p className="text-sm text-muted-foreground max-w-lg leading-relaxed">
-              Import course materials, lecture slides, or textbook chapters. All AI synthesis runs entirely private on your device.
-            </p>
+      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pt-6 pb-16 space-y-6">
+        {/* Hidden File Input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".pdf,.txt,.md"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files && e.target.files[0]) {
+              handleFileUpload(e.target.files[0]);
+            }
+          }}
+        />
+
+        {/* ─── Resumely-style Master Anchor Header Card ─── */}
+        <section className="group relative rounded-[28px] bg-gradient-to-b from-card/90 to-card/40 dark:from-card/40 dark:to-card/10 p-5 sm:p-6 transition-all duration-200 shadow-xs overflow-hidden outline-1 outline-neutral-200/60 dark:outline-neutral-800/60">
+          <div className="absolute inset-0 blur-2xl pointer-events-none">
+            <span className="size-80 rounded-full bg-violet-200/40 dark:bg-violet-400/15 inline-flex absolute -left-5 -translate-y-1/2" />
+            <span className="size-80 rounded-full bg-emerald-200/40 dark:bg-emerald-400/10 inline-flex absolute -right-5 -translate-y-1/3" />
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept=".pdf,.txt,.md"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  handleFileUpload(e.target.files[0]);
-                }
-              }}
-            />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative z-10">
+            <div className="flex items-start gap-4">
+              <div className="space-y-1.5">
+                <div>
+                  <h1 className="text-base sm:text-lg font-semibold tracking-tight text-foreground">
+                    Study Library
+                  </h1>
+                  <p className="text-xs text-muted-foreground mt-0.5 max-w-lg">
+                    Course materials, lecture slides, and notes indexed privately in local memory
+                  </p>
+                </div>
 
-            <ColoredButton
-              color="amber"
-              size="lg"
-              disabled={isProcessing}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="w-4 h-4" />
-              Import PDF / Notes
-            </ColoredButton>
-
-            <ColoredButton
-              color="neutral"
-              size="lg"
-              disabled={isProcessing}
-              onClick={() => setShowPasteModal(true)}
-            >
-              <FileText className="w-4 h-4" />
-              Paste Text
-            </ColoredButton>
-          </div>
-        </div>
-
-        {/* Executive Study Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          <div className="p-4 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 space-y-1">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/70">
-              Documents
-            </span>
-            <div className="text-2xl font-bold font-mono text-foreground">
-              {documents.length}
+                {/* Structured Stat Chips */}
+                <div className="flex flex-wrap items-center gap-3 pt-0.5">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground/90">
+                    <strong className="text-foreground font-semibold font-mono">{documents.length}</strong>
+                    <span className="text-muted-foreground">documents</span>
+                  </span>
+                  <span className="text-neutral-300 dark:text-neutral-700">•</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground/90">
+                    <strong className="text-foreground font-semibold font-mono">{totalPages}</strong>
+                    <span className="text-muted-foreground">pages</span>
+                  </span>
+                  <span className="text-neutral-300 dark:text-neutral-700">•</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground/90">
+                    <strong className="text-foreground font-semibold font-mono">{totalWords.toLocaleString()}</strong>
+                    <span className="text-muted-foreground">words</span>
+                  </span>
+                  <span className="text-neutral-300 dark:text-neutral-700">•</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground/90">
+                    <strong className="text-foreground font-semibold font-mono">{totalTopics}</strong>
+                    <span className="text-muted-foreground">topics</span>
+                  </span>
+                </div>
+              </div>
             </div>
-            <p className="text-[11px] text-muted-foreground">Indexed in memory</p>
-          </div>
 
-          <div className="p-4 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 space-y-1">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/70">
-              Pages Studied
-            </span>
-            <div className="text-2xl font-bold font-mono text-foreground">
-              {totalPages}
+            {/* Action CTA buttons */}
+            <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+              <ColoredButton
+                color="amber"
+                className="px-5 rounded-full active:scale-[0.97]"
+                size="lg"
+                disabled={isProcessing}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-3.5 h-3.5 mr-1" />
+                <span>Import PDF / Notes</span>
+              </ColoredButton>
+
+              <button
+                type="button"
+                disabled={isProcessing}
+                onClick={() => setShowPasteModal(true)}
+                className="px-3.5 py-2 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+              >
+                Paste Text
+              </button>
             </div>
-            <p className="text-[11px] text-muted-foreground">Extracted pages</p>
           </div>
+        </section>
 
-          <div className="p-4 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 space-y-1">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/70">
-              Words Parsed
-            </span>
-            <div className="text-2xl font-bold font-mono text-foreground">
-              {totalWords.toLocaleString()}
-            </div>
-            <p className="text-[11px] text-muted-foreground">Total corpus</p>
+        {/* Processing Indicator */}
+        {isProcessing && (
+          <div className="p-3.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-3 animate-pulse">
+            <div className="w-4 h-4 rounded-full border-2 border-amber-500 border-t-transparent animate-spin shrink-0" />
+            <span className="font-medium">{processingStatus}</span>
           </div>
+        )}
 
-          <div className="p-4 rounded-2xl bg-white/60 dark:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800/60 space-y-1">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/70">
-              Core Topics
-            </span>
-            <div className="text-2xl font-bold font-mono text-foreground">
-              {totalTopics}
-            </div>
-            <p className="text-[11px] text-muted-foreground">Knowledge nodes</p>
-          </div>
-        </div>
-
-        {/* Drag and Drop Zone */}
+        {/* Drag and Drop Zone - Compact */}
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onClick={() => fileInputRef.current?.click()}
-          className={`py-6 px-4 rounded-2xl border border-dashed transition-all text-center flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
+          className={`py-3 px-4 rounded-2xl border border-dashed transition-all text-center flex items-center justify-center gap-2 cursor-pointer ${
             dragActive
-              ? "border-amber-400 bg-amber-50/70 dark:bg-amber-950/40 text-amber-950 dark:text-amber-200 scale-[1.01]"
-              : "border-neutral-200/80 dark:border-neutral-800/80 hover:border-neutral-300 dark:hover:border-neutral-700 bg-neutral-50/30 dark:bg-neutral-900/20"
+              ? "border-amber-400 bg-amber-50/70 dark:bg-amber-950/40 text-amber-950 dark:text-amber-200 scale-[1.005]"
+              : "border-neutral-200/80 dark:border-neutral-800/80 hover:border-neutral-300 dark:hover:border-neutral-700 bg-neutral-50/20 dark:bg-neutral-900/10"
           }`}
         >
-          <Upload className={`w-5 h-5 ${dragActive ? 'animate-bounce text-amber-500' : 'text-muted-foreground/80'}`} />
+          <Upload className={`w-3.5 h-3.5 ${dragActive ? 'animate-bounce text-amber-500' : 'text-muted-foreground/70'}`} />
           <p className="text-xs text-muted-foreground font-medium">
-            Drag and drop course PDFs or text notes here, or <span className="text-amber-600 dark:text-amber-400 underline underline-offset-4">browse files</span>
+            Drag and drop course files here, or <span className="text-amber-600 dark:text-amber-400 underline underline-offset-4">browse</span>
           </p>
         </div>
 
-        {/* Search Bar, Filters & Document Counter */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-wrap flex-1">
+        {/* Search Bar, Filters & Counter */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-0.5">
+          <div className="flex items-center gap-2.5 flex-wrap flex-1">
             <div className="relative flex-1 max-w-xs">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -282,11 +283,11 @@ export function LibraryView({
                 placeholder="Search notes..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-xl text-foreground border border-neutral-200/60 dark:border-neutral-700/60 focus:outline-none placeholder:text-muted-foreground/70"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-xl text-foreground border border-neutral-200/50 dark:border-neutral-700/50 focus:outline-none placeholder:text-muted-foreground/70"
               />
             </div>
 
-            <div className="flex items-center gap-1 bg-neutral-100/60 dark:bg-neutral-800/50 p-0.5 rounded-xl border border-neutral-200/50 dark:border-neutral-700/50">
+            <div className="flex items-center gap-1 bg-neutral-100/60 dark:bg-neutral-800/50 p-0.5 rounded-xl border border-neutral-200/40 dark:border-neutral-700/40">
               {(['all', 'pdf', 'text'] as const).map((t) => (
                 <button
                   key={t}
@@ -321,9 +322,9 @@ export function LibraryView({
         </div>
 
         {/* Document Version List (Inspired by ResumeVersionList) */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {filteredDocs.length === 0 ? (
-            <div className="py-20 text-center space-y-4 rounded-2xl bg-neutral-50/50 dark:bg-neutral-900/30 border border-dashed border-neutral-200 dark:border-neutral-800">
+            <div className="py-16 text-center space-y-4 rounded-2xl bg-neutral-50/50 dark:bg-neutral-900/30 border border-dashed border-neutral-200 dark:border-neutral-800">
               <BookOpen className="w-8 h-8 mx-auto text-muted-foreground/60" />
               <div className="space-y-1">
                 <p className="text-sm font-medium text-foreground">No documents found</p>
@@ -343,7 +344,7 @@ export function LibraryView({
               return (
                 <div
                   key={doc.id}
-                  className={`group relative p-5 rounded-2xl bg-white/70 dark:bg-neutral-900/50 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                  className={`group relative p-4 sm:p-4.5 rounded-2xl bg-white/70 dark:bg-neutral-900/50 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 ${
                     isActive 
                       ? 'border-amber-300/80 dark:border-amber-700/80 shadow-xs' 
                       : 'border-neutral-200/70 dark:border-neutral-800/70 hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-50/60 dark:hover:bg-neutral-800/40'
