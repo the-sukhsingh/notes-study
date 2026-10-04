@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { DocumentSource, ExplanationStyle, ConceptExplanation, AISettings } from '@/lib/types';
 import { explainConcept } from '@/lib/aiEngine';
+import { ColoredButton } from '@/components/custom/colored-button';
 
 interface ExplainModeProps {
   document: DocumentSource;
@@ -56,22 +57,13 @@ export function ExplainMode({
   };
 
   return (
-    <div className="space-y-12">
-      {/* Configuration Section (No cards, no borders) */}
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Explain My Notes
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Grounded conceptual explanations tailored to your revision style.
-          </p>
-        </div>
-
+    <div className="space-y-6 max-w-2xl mx-auto">
+      {/* Configuration Section */}
+      <div className="space-y-4">
         {/* Topic Selector Chips */}
         <div className="space-y-2">
           <span className="text-[11px] font-medium tracking-wide uppercase text-muted-foreground/70">
-            Select Topic
+            Select Topic or Concept
           </span>
           <div className="flex flex-wrap gap-1.5">
             {document.topics.map(t => (
@@ -82,10 +74,10 @@ export function ExplainMode({
                   setSelectedTopic(t.title);
                   setCustomConcept('');
                 }}
-                className={`px-3 py-1.5 rounded-full text-xs transition-colors active-press ${
+                className={`px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
                   selectedTopic === t.title && !customConcept
-                    ? 'bg-foreground text-background font-medium'
-                    : 'bg-neutral-100/60 dark:bg-neutral-800/50 text-foreground hover:bg-neutral-200/50 dark:hover:bg-neutral-700/60'
+                    ? 'bg-purple-600 text-white font-medium shadow-xs'
+                    : 'bg-neutral-100/70 dark:bg-neutral-800/60 text-foreground hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60'
                 }`}
               >
                 {t.title}
@@ -99,7 +91,7 @@ export function ExplainMode({
               placeholder="Or type a specific term from your notes..."
               value={customConcept}
               onChange={(e) => setCustomConcept(e.target.value)}
-              className="w-full px-4 py-2 text-xs bg-neutral-100/50 dark:bg-neutral-800/40 rounded-full text-foreground focus:outline-none placeholder:text-muted-foreground/60"
+              className="w-full px-3.5 py-2 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-xl border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none placeholder:text-muted-foreground/60"
             />
           </div>
         </div>
@@ -107,18 +99,18 @@ export function ExplainMode({
         {/* Style Selector */}
         <div className="space-y-2">
           <span className="text-[11px] font-medium tracking-wide uppercase text-muted-foreground/70">
-            Pedagogical Style
+            Explanation Style
           </span>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {stylesList.map(({ id, label, desc }) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setSelectedStyle(id)}
-                className={`px-3 py-1.5 rounded-full text-xs transition-all active-press ${
+                className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                   selectedStyle === id
-                    ? 'bg-foreground text-background font-medium'
-                    : 'bg-neutral-100/60 dark:bg-neutral-800/50 text-foreground hover:bg-neutral-200/50 dark:hover:bg-neutral-700/60'
+                    ? 'bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 font-medium'
+                    : 'bg-neutral-100/70 dark:bg-neutral-800/60 text-foreground hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60'
                 }`}
                 title={desc}
               >
@@ -130,83 +122,82 @@ export function ExplainMode({
 
         {/* Generate Button */}
         <div>
-          <button
-            type="button"
+          <ColoredButton
+            color="purple"
+            size="lg"
             disabled={loading}
             onClick={handleGenerate}
-            className="px-5 py-2 bg-foreground text-background text-xs font-medium rounded-full hover:opacity-85 disabled:opacity-40 transition-opacity flex items-center gap-2 active-press"
           >
             {loading ? (
               <>
-                <RefreshCw className="w-3 h-3 animate-spin" />
-                Synthesizing explanation...
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                Synthesizing Concept...
               </>
             ) : (
               <>
                 <Sparkles className="w-3.5 h-3.5" />
-                Explain
+                Explain Concept
               </>
             )}
-          </button>
+          </ColoredButton>
         </div>
       </div>
 
-      {/* Explanation Result Output */}
-      {explanation ? (
-        <article className="max-w-[70ch] space-y-8 select-text pt-4">
-          <div className="flex items-baseline justify-between gap-4 pb-2 border-b border-neutral-100 dark:border-neutral-800/60">
-            <h3 className="text-xl font-semibold tracking-tight text-foreground">
+      {/* Explanation Output */}
+      {explanation && (
+        <article className="space-y-6 select-text pt-4 border-t border-neutral-200/60 dark:border-neutral-800/60 animate-in fade-in duration-150">
+          <div className="flex items-baseline justify-between gap-4">
+            <h3 className="text-base font-semibold tracking-tight text-foreground">
               {explanation.topic}
             </h3>
 
-            <button
-              type="button"
-              onClick={() => onJumpToPage(explanation.sourcePage)}
-              className="text-xs font-mono text-muted-foreground hover:text-foreground flex items-center gap-1 shrink-0"
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              Page {explanation.sourcePage}
-            </button>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+              <span className="capitalize">{explanation.style} style</span>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => onJumpToPage(explanation.sourcePage)}
+                className="hover:text-foreground hover:underline flex items-center gap-1"
+              >
+                <BookOpen className="w-3 h-3 text-purple-500" />
+                Page {explanation.sourcePage}
+              </button>
+            </div>
           </div>
 
-          {/* Formatted Content */}
-          <div className="text-[16px] leading-[1.75] whitespace-pre-wrap font-sans text-foreground/90">
+          <div className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans text-foreground/90">
             {explanation.content}
           </div>
 
-          {/* Source Excerpt */}
-          <div className="pl-4 border-l-2 border-neutral-200 dark:border-neutral-800 space-y-1">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
-              Source Excerpt (Page {explanation.sourcePage})
-            </span>
-            <p className="text-xs text-muted-foreground font-mono leading-relaxed italic">
-              "{explanation.sourcePassage.slice(0, 240)}..."
-            </p>
-          </div>
-
-          {/* Socratic Questions */}
           {explanation.followUpQuestions && explanation.followUpQuestions.length > 0 && (
             <div className="space-y-2 pt-2">
-              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground" />
-                Check your understanding:
+              <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
+                Self-Test & Follow-up Questions
               </span>
-              <ul className="space-y-1 text-xs text-muted-foreground">
-                {explanation.followUpQuestions.map((q, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span className="text-foreground font-bold">•</span>
-                    <span>{q}</span>
+              <ul className="space-y-1.5 pl-4 list-disc text-xs sm:text-sm text-foreground/80 marker:text-purple-400">
+                {explanation.followUpQuestions.map((point: string, idx: number) => (
+                  <li key={idx} className="leading-relaxed">
+                    {point}
                   </li>
                 ))}
               </ul>
             </div>
           )}
+
+          {explanation.sourcePassage && (
+            <div className="p-3.5 rounded-xl bg-neutral-100/50 dark:bg-neutral-800/40 border border-neutral-200/50 dark:border-neutral-700/50 text-xs space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                Document Quote
+              </span>
+              <p className="italic text-muted-foreground">
+                "{explanation.sourcePassage}"
+              </p>
+            </div>
+          )}
         </article>
-      ) : (
-        <div className="py-16 text-center text-xs text-muted-foreground">
-          Select a topic and style above to view a grounded explanation.
-        </div>
       )}
     </div>
   );
 }
+
+export default ExplainMode;

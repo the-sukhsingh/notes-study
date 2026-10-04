@@ -7,24 +7,29 @@ import {
   BookOpen, 
   RotateCcw, 
   ChevronRight, 
-  RefreshCw 
+  RefreshCw,
+  Trophy,
+  ArrowRight
 } from 'lucide-react';
 import { DocumentSource, QuizQuestion, QuizSession, QuizAttempt, AISettings } from '@/lib/types';
 import { generateQuiz } from '@/lib/aiEngine';
 import { saveQuizSession } from '@/lib/storage';
+import { ColoredButton } from '@/components/custom/colored-button';
 
 interface QuizModeProps {
   document: DocumentSource;
   settings: AISettings;
   onJumpToPage: (page: number) => void;
   presetQuestions?: QuizQuestion[];
+  presetTopicId?: string;
 }
 
 export function QuizMode({
   document,
   settings,
   onJumpToPage,
-  presetQuestions
+  presetQuestions,
+  presetTopicId
 }: QuizModeProps) {
   const [questions, setQuestions] = useState<QuizQuestion[]>(presetQuestions || []);
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -33,7 +38,7 @@ export function QuizMode({
   const [isFinished, setIsFinished] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [selectedTopicId, setSelectedTopicId] = useState<string>('all');
+  const [selectedTopicId, setSelectedTopicId] = useState<string>(presetTopicId || 'all');
   const [questionCount, setQuestionCount] = useState<number>(5);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
@@ -48,6 +53,12 @@ export function QuizMode({
       handleGenerateQuiz();
     }
   }, [document.id, presetQuestions]);
+
+  useEffect(() => {
+    if (presetTopicId) {
+      setSelectedTopicId(presetTopicId);
+    }
+  }, [presetTopicId]);
 
   const handleGenerateQuiz = async (retryQuestions?: QuizQuestion[]) => {
     if (retryQuestions && retryQuestions.length > 0) {
@@ -138,179 +149,159 @@ export function QuizMode({
 
   const currentQ = questions[currentQIndex];
   const isCurrentChecked = currentQ ? !!submittedAnswers[currentQ.id] : false;
-  const isCurrentCorrect = currentQ && isCurrentChecked
-    ? String(selectedAnswers[currentQ.id]).trim().toLowerCase() === String(currentQ.correctAnswer).trim().toLowerCase()
+  const currentUserAns = currentQ ? selectedAnswers[currentQ.id] : undefined;
+  const isCurrentCorrect = currentQ && isCurrentChecked 
+    ? String(currentUserAns).trim().toLowerCase() === String(currentQ.correctAnswer).trim().toLowerCase()
     : false;
 
   return (
-    <div className="space-y-12">
-      {/* Top Toolbar */}
-      {!isFinished && (
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedTopicId}
-              onChange={(e) => setSelectedTopicId(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-full text-foreground focus:outline-none"
-            >
-              <option value="all">All Topics ({document.topics.length})</option>
-              {document.topics.map(t => (
-                <option key={t.id} value={t.id}>{t.title}</option>
-              ))}
-            </select>
-
-            <select
-              value={questionCount}
-              onChange={(e) => setQuestionCount(Number(e.target.value))}
-              className="px-3 py-1.5 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-full text-foreground focus:outline-none"
-            >
-              <option value={3}>3 Questions</option>
-              <option value={5}>5 Questions</option>
-              <option value={8}>8 Questions</option>
-            </select>
-          </div>
-
-          <button
-            type="button"
+    <div className="space-y-6 max-w-2xl mx-auto">
+      {/* Quiz Controls Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedTopicId}
+            onChange={(e) => setSelectedTopicId(e.target.value)}
             disabled={loading}
-            onClick={() => handleGenerateQuiz()}
-            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors active-press"
+            className="px-3 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-lg text-foreground focus:outline-none border border-neutral-200/50 dark:border-neutral-700/50"
           >
-            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-            New Quiz
-          </button>
-        </div>
-      )}
+            <option value="all">All Topics ({document.topics.length})</option>
+            {document.topics.map(t => (
+              <option key={t.id} value={t.id}>{t.title}</option>
+            ))}
+          </select>
 
-      {/* Loading state */}
+          <select
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value as any)}
+            disabled={loading}
+            className="px-2.5 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-lg text-foreground focus:outline-none border border-neutral-200/50 dark:border-neutral-700/50"
+          >
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+
+        <ColoredButton
+          color="emerald"
+          size="sm"
+          disabled={loading}
+          onClick={() => handleGenerateQuiz()}
+        >
+          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+          New Quiz
+        </ColoredButton>
+      </div>
+
       {loading ? (
-        <div className="py-24 flex flex-col items-center justify-center gap-3 text-xs text-muted-foreground">
-          <div className="w-5 h-5 rounded-full border-2 border-foreground border-t-transparent animate-spin" />
-          Formulating questions and explanations...
+        <div className="py-28 flex flex-col items-center justify-center gap-3 text-xs text-muted-foreground">
+          <div className="w-6 h-6 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+          <span>Generating quiz questions from your notes...</span>
         </div>
       ) : isFinished ? (
-        /* Final Results */
-        <div className="max-w-2xl mx-auto space-y-10 pt-4">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              Quiz Results
-            </h2>
-            <div className="text-sm font-mono text-muted-foreground">
-              Score: <span className="text-foreground font-semibold">
-                {questions.filter(q => String(selectedAnswers[q.id]).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase()).length} / {questions.length}
-              </span>
-              <span className="mx-2">•</span>
-              <span>
-                {Math.round((questions.filter(q => String(selectedAnswers[q.id]).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase()).length / questions.length) * 100)}%
-              </span>
+        /* Quiz Finished Overview */
+        <div className="py-8 space-y-8 text-center animate-in fade-in duration-200">
+          <div className="space-y-3">
+            <div className="inline-flex p-3 rounded-full bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+              <Trophy className="w-8 h-8" />
             </div>
-          </div>
-
-          {/* Breakdown */}
-          <div className="space-y-6">
-            <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground/70">
-              Questions Review
-            </div>
-
-            <div className="space-y-4">
-              {questions.map((q, idx) => {
-                const userAns = selectedAnswers[q.id];
-                const isCorrect = String(userAns).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
-
-                return (
-                  <div key={q.id} className="space-y-1.5 text-xs py-2">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <div className="flex items-center gap-2 font-medium text-foreground">
-                        <span className="font-mono text-muted-foreground">{idx + 1}.</span>
-                        <span>{q.question}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => onJumpToPage(q.sourcePage)}
-                        className="text-[11px] font-mono text-muted-foreground hover:underline shrink-0"
-                      >
-                        Page {q.sourcePage}
-                      </button>
-                    </div>
-
-                    <div className="pl-5 space-y-1 text-muted-foreground">
-                      <p>
-                        Your answer: <span className={isCorrect ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-rose-600 dark:text-rose-400 font-medium'}>{String(userAns || 'None')}</span>
-                        {!isCorrect && (
-                          <span> • Correct: <span className="text-foreground font-medium">{String(q.correctAnswer)}</span></span>
-                        )}
-                      </p>
-                      <p className="text-[11px] font-mono text-muted-foreground/80 italic">
-                        {q.explanation}
-                      </p>
-                    </div>
+            <h3 className="text-2xl font-semibold tracking-tight text-foreground">
+              Quiz Completed!
+            </h3>
+            {(() => {
+              const correct = questions.filter(q => 
+                String(selectedAnswers[q.id]).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase()
+              ).length;
+              const pct = Math.round((correct / questions.length) * 100);
+              return (
+                <div className="space-y-1">
+                  <div className="text-4xl font-bold font-mono tracking-tight text-foreground">
+                    {pct}%
                   </div>
-                );
-              })}
-            </div>
+                  <p className="text-xs text-muted-foreground">
+                    {correct} of {questions.length} questions correct
+                  </p>
+                </div>
+              );
+            })()}
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-4 pt-4 border-t border-neutral-100 dark:border-neutral-800/60">
-            <button
-              type="button"
-              onClick={() => handleGenerateQuiz()}
-              className="px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              Start New Quiz
-            </button>
-
+          <div className="flex items-center justify-center gap-3 pt-2">
             {questions.some(q => String(selectedAnswers[q.id]).trim().toLowerCase() !== String(q.correctAnswer).trim().toLowerCase()) && (
-              <button
-                type="button"
+              <ColoredButton
+                color="emerald"
+                size="lg"
                 onClick={handleRetryMissed}
-                className="px-4 py-2 bg-foreground text-background rounded-full text-xs font-medium hover:opacity-85 transition-opacity active-press flex items-center gap-1.5"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-4 h-4" />
                 Retry Missed Questions
-              </button>
+              </ColoredButton>
             )}
+
+            <ColoredButton
+              color="neutral"
+              size="lg"
+              onClick={() => handleGenerateQuiz()}
+            >
+              Take Another Quiz
+            </ColoredButton>
           </div>
         </div>
-      ) : currentQ ? (
-        /* Active Question Display (No cards, no borders) */
-        <div className="max-w-2xl mx-auto space-y-8">
+      ) : questions.length > 0 && currentQ ? (
+        /* Question Answering View */
+        <div className="space-y-6">
+          {/* Question Header & Progress */}
           <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
-            <span>
+            <span className="font-medium text-foreground">
               Question {currentQIndex + 1} <span className="opacity-50">/ {questions.length}</span>
             </span>
 
             <button
               type="button"
               onClick={() => onJumpToPage(currentQ.sourcePage)}
-              className="hover:underline flex items-center gap-1"
+              className="hover:text-foreground flex items-center gap-1 text-[11px]"
             >
               <BookOpen className="w-3 h-3" />
-              Page {currentQ.sourcePage}
+              Source Page {currentQ.sourcePage}
             </button>
           </div>
 
-          <h3 className="text-xl sm:text-2xl font-medium tracking-tight text-foreground leading-snug">
-            {currentQ.question}
-          </h3>
+          {/* Progress track */}
+          <div className="w-full h-1 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-emerald-500 transition-all duration-300"
+              style={{ width: `${((currentQIndex + 1) / questions.length) * 100}%` }}
+            />
+          </div>
+
+          {/* Question Prompt */}
+          <div className="space-y-2 pt-2">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/70">
+              {currentQ.type === 'multiple-choice' ? 'Multiple Choice' : 'True / False'}
+            </span>
+            <h3 className="text-xl sm:text-2xl font-medium tracking-tight text-foreground leading-snug">
+              {currentQ.question}
+            </h3>
+          </div>
 
           {/* Options */}
-          <div className="space-y-1">
-            {(currentQ.options || ['True', 'False']).map((opt, idx) => {
-              const isSelected = selectedAnswers[currentQ.id] === opt;
-              const isCorrectOpt = String(opt).trim().toLowerCase() === String(currentQ.correctAnswer).trim().toLowerCase();
+          <div className="space-y-2.5 pt-2">
+            {(currentQ.options || []).map((option, idx) => {
+              const isSelected = currentUserAns === option;
+              let optionStyle = "bg-neutral-100/50 dark:bg-neutral-800/40 hover:bg-neutral-100 dark:hover:bg-neutral-800 border-neutral-200/60 dark:border-neutral-700/60";
 
-              let rowClass = 'hover:bg-neutral-100/60 dark:hover:bg-neutral-800/40 text-foreground';
-              if (isSelected && !isCurrentChecked) {
-                rowClass = 'bg-neutral-100 dark:bg-neutral-800 text-foreground font-medium';
-              } else if (isCurrentChecked) {
-                if (isCorrectOpt) {
-                  rowClass = 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-medium';
-                } else if (isSelected && !isCorrectOpt) {
-                  rowClass = 'bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200';
+              if (isCurrentChecked) {
+                const isCorrectOption = String(option).trim().toLowerCase() === String(currentQ.correctAnswer).trim().toLowerCase();
+                if (isCorrectOption) {
+                  optionStyle = "bg-emerald-100/80 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 text-emerald-950 dark:text-emerald-200 font-medium";
+                } else if (isSelected && !isCurrentCorrect) {
+                  optionStyle = "bg-rose-100/80 dark:bg-rose-950/60 border-rose-300 dark:border-rose-700 text-rose-950 dark:text-rose-200";
                 } else {
-                  rowClass = 'opacity-40 text-muted-foreground';
+                  optionStyle = "opacity-50 border-transparent";
                 }
+              } else if (isSelected) {
+                optionStyle = "bg-neutral-200/80 dark:bg-neutral-700/80 border-neutral-400 dark:border-neutral-500 font-medium";
               }
 
               return (
@@ -318,70 +309,90 @@ export function QuizMode({
                   key={idx}
                   type="button"
                   disabled={isCurrentChecked}
-                  onClick={() => handleSelectOption(currentQ.id, opt)}
-                  className={`w-full text-left py-3 px-4 -mx-4 rounded-2xl text-xs transition-colors flex items-center justify-between ${rowClass}`}
+                  onClick={() => handleSelectOption(currentQ.id, option)}
+                  className={`w-full p-4 rounded-xl border text-left text-sm transition-all flex items-center justify-between gap-3 cursor-pointer ${optionStyle}`}
                 >
-                  <span className="leading-relaxed">{opt}</span>
-                  {isCurrentChecked && isCorrectOpt && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  )}
-                  {isCurrentChecked && isSelected && !isCorrectOpt && (
-                    <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-md bg-neutral-200/60 dark:bg-neutral-700/60 text-xs font-mono flex items-center justify-center shrink-0">
+                      {String.fromCharCode(65 + idx)}
+                    </span>
+                    <span>{option}</span>
+                  </div>
+
+                  {isCurrentChecked && (
+                    <div>
+                      {String(option).trim().toLowerCase() === String(currentQ.correctAnswer).trim().toLowerCase() ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                      ) : isSelected ? (
+                        <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                      ) : null}
+                    </div>
                   )}
                 </button>
               );
             })}
           </div>
 
-          {/* Explanation */}
+          {/* Explanation Box when checked */}
           {isCurrentChecked && (
-            <div className="pl-4 border-l-2 border-neutral-200 dark:border-neutral-800 space-y-1 text-xs animate-in fade-in duration-150">
-              <span className="font-semibold text-foreground">
-                {isCurrentCorrect ? 'Correct' : `Incorrect — Answer: ${String(currentQ.correctAnswer)}`}
-              </span>
-              <p className="text-muted-foreground font-mono text-[11px] leading-relaxed">
-                {currentQ.explanation}
-              </p>
+            <div className={`p-4 rounded-xl text-xs space-y-2 animate-in fade-in duration-150 ${
+              isCurrentCorrect 
+                ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200' 
+                : 'bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-800/40 text-rose-900 dark:text-rose-200'
+            }`}>
+              <div className="flex items-center justify-between font-semibold">
+                <span>{isCurrentCorrect ? 'Correct!' : 'Incorrect'}</span>
+                <span className="font-mono text-[11px]">Cited: Page {currentQ.sourcePage}</span>
+              </div>
+              <p className="leading-relaxed opacity-90">{currentQ.explanation}</p>
             </div>
           )}
 
-          {/* Next / Check action */}
-          <div className="flex items-center justify-between pt-4">
-            <button
-              type="button"
-              disabled={currentQIndex === 0}
-              onClick={() => setCurrentQIndex(prev => Math.max(0, prev - 1))}
-              className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-            >
-              Previous
-            </button>
+          {/* Bottom Actions */}
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs text-muted-foreground font-mono">
+              {currentUserAns === undefined && !isCurrentChecked ? 'Select an answer to continue' : ''}
+            </span>
 
-            {!isCurrentChecked ? (
-              <button
-                type="button"
-                disabled={selectedAnswers[currentQ.id] === undefined}
-                onClick={() => handleCheckAnswer(currentQ.id)}
-                className="px-5 py-2 bg-foreground text-background text-xs font-medium rounded-full hover:opacity-85 disabled:opacity-40 transition-opacity active-press"
-              >
-                Check Answer
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleNext}
-                className="px-5 py-2 bg-foreground text-background text-xs font-medium rounded-full hover:opacity-85 transition-opacity active-press flex items-center gap-1.5"
-              >
-                {currentQIndex === questions.length - 1 ? 'View Results' : 'Next Question'}
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <div>
+              {!isCurrentChecked ? (
+                <ColoredButton
+                  color="emerald"
+                  size="lg"
+                  disabled={currentUserAns === undefined}
+                  onClick={() => handleCheckAnswer(currentQ.id)}
+                >
+                  Check Answer
+                </ColoredButton>
+              ) : (
+                <ColoredButton
+                  color="indigo"
+                  size="lg"
+                  onClick={handleNext}
+                >
+                  {currentQIndex < questions.length - 1 ? (
+                    <>
+                      Next Question
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  ) : (
+                    'View Quiz Results'
+                  )}
+                </ColoredButton>
+              )}
+            </div>
           </div>
         </div>
       ) : (
-        <div className="py-20 text-center text-xs text-muted-foreground">
-          No quiz active. Click "New Quiz" above to begin.
+        <div className="py-20 text-center space-y-4">
+          <p className="text-sm text-muted-foreground">No questions found for this topic.</p>
+          <ColoredButton color="emerald" onClick={() => handleGenerateQuiz()}>
+            Generate Questions
+          </ColoredButton>
         </div>
       )}
     </div>
   );
 }
+
+export default QuizMode;

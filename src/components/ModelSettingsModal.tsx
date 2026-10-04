@@ -16,6 +16,7 @@ import {
 import { AISettings } from '@/lib/types';
 import { testOllamaConnection } from '@/lib/aiEngine';
 import { exportBackupJson, importBackupJson, purgeAllUserData } from '@/lib/storage';
+import { ColoredButton } from './custom/colored-button';
 
 interface ModelSettingsModalProps {
   isOpen: boolean;
@@ -111,21 +112,21 @@ export function ModelSettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-in fade-in duration-100">
       <div 
-        className="w-full max-w-lg bg-background rounded-3xl p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto ring-1 ring-black/5 dark:ring-white/10"
+        className="w-full max-w-lg bg-background rounded-2xl p-6 sm:p-7 space-y-6 max-h-[90vh] overflow-y-auto border border-neutral-200/80 dark:border-neutral-800/80 shadow-2xl"
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-2">
+        <div className="flex items-center justify-between pb-2 border-b border-neutral-200/60 dark:border-neutral-800/60">
           <div>
             <h2 className="text-base font-semibold text-foreground">Local Model & Privacy</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Control how AI runs on your personal device</p>
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:text-foreground rounded-full transition-colors"
+            className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -133,44 +134,44 @@ export function ModelSettingsModal({
         </div>
 
         {/* Privacy Note */}
-        <div className="text-xs leading-relaxed text-muted-foreground bg-neutral-100/50 dark:bg-neutral-800/40 p-4 rounded-2xl">
-          <span className="font-semibold text-foreground">100% Local-First:</span> All study materials, extracted text, and AI responses remain strictly on your machine.
+        <div className="text-xs leading-relaxed text-muted-foreground bg-neutral-100/60 dark:bg-neutral-800/50 p-4 rounded-xl border border-neutral-200/50 dark:border-neutral-700/50">
+          <span className="font-semibold text-foreground">100% Local-First:</span> All study materials, extracted notes, and AI synthesis remain strictly on your machine.
         </div>
 
         {/* Engine Switcher */}
         <div className="space-y-3">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/70">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
             Intelligence Engine
           </span>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
               onClick={() => setLocalSettings(prev => ({ ...prev, provider: 'builtin' }))}
-              className={`p-3.5 text-left rounded-2xl text-xs transition-colors flex flex-col justify-between ${
+              className={`p-3.5 text-left rounded-xl text-xs transition-all flex flex-col justify-between border cursor-pointer ${
                 localSettings.provider === 'builtin'
-                  ? 'bg-neutral-100 dark:bg-neutral-800 text-foreground font-medium'
-                  : 'hover:bg-neutral-100/50 dark:hover:bg-neutral-800/40 text-muted-foreground'
+                  ? 'bg-neutral-100 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 text-foreground font-medium shadow-xs'
+                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-850 border-neutral-200/60 dark:border-neutral-800/60 text-muted-foreground'
               }`}
             >
               <div className="font-semibold text-foreground mb-1">Built-in Engine</div>
               <p className="text-[11px] leading-relaxed opacity-75">
-                Zero setup. Instant extractive NLP running inside your browser.
+                Zero setup required. Instant heuristic NLP running in-browser.
               </p>
             </button>
 
             <button
               type="button"
               onClick={() => setLocalSettings(prev => ({ ...prev, provider: 'ollama' }))}
-              className={`p-3.5 text-left rounded-2xl text-xs transition-colors flex flex-col justify-between ${
+              className={`p-3.5 text-left rounded-xl text-xs transition-all flex flex-col justify-between border cursor-pointer ${
                 localSettings.provider === 'ollama'
-                  ? 'bg-neutral-100 dark:bg-neutral-800 text-foreground font-medium'
-                  : 'hover:bg-neutral-100/50 dark:hover:bg-neutral-800/40 text-muted-foreground'
+                  ? 'bg-neutral-100 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 text-foreground font-medium shadow-xs'
+                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-850 border-neutral-200/60 dark:border-neutral-800/60 text-muted-foreground'
               }`}
             >
               <div className="font-semibold text-foreground mb-1">Ollama Runtime</div>
               <p className="text-[11px] leading-relaxed opacity-75">
-                Local open weights (Llama 3.2, Mistral, Phi-3, Qwen).
+                Connects to local LLM models (Llama 3.2, Mistral, Qwen).
               </p>
             </button>
           </div>
@@ -178,106 +179,118 @@ export function ModelSettingsModal({
 
         {/* Ollama options */}
         {localSettings.provider === 'ollama' && (
-          <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
+          <div className="space-y-3.5 pt-1">
+            <div className="space-y-1">
               <label className="text-xs text-muted-foreground font-mono">Server Endpoint</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={localSettings.ollamaEndpoint}
                   onChange={(e) => setLocalSettings(prev => ({ ...prev, ollamaEndpoint: e.target.value }))}
-                  className="flex-1 px-3 py-1.5 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-xl text-foreground focus:outline-none font-mono"
+                  className="flex-1 px-3 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-xl border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none font-mono"
                   placeholder="http://localhost:11434"
                 />
-                <button
-                  type="button"
+                <ColoredButton
+                  color="neutral"
+                  size="sm"
                   onClick={handleTestOllama}
                   disabled={testingConnection}
-                  className="px-3 py-1.5 text-xs font-medium text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors active-press"
                 >
-                  <RefreshCw className={`w-3 h-3 ${testingConnection ? 'animate-spin' : ''}`} />
-                </button>
+                  <RefreshCw className={`w-3.5 h-3.5 ${testingConnection ? 'animate-spin' : ''}`} />
+                  Test
+                </ColoredButton>
               </div>
             </div>
 
             {ollamaStatus.tested && (
-              <div className="text-xs text-muted-foreground font-mono">
+              <div className="text-xs font-mono">
                 {ollamaStatus.ok ? (
                   <span className="text-emerald-600 dark:text-emerald-400">
-                    Connected to Ollama ({ollamaStatus.models.length} models found)
+                    Connected to Ollama ({ollamaStatus.models.length} models detected)
                   </span>
                 ) : (
-                  <span className="text-amber-600 dark:text-amber-400">
+                  <span className="text-rose-600 dark:text-rose-400">
                     Could not reach Ollama: {ollamaStatus.error}
                   </span>
                 )}
               </div>
             )}
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <label className="text-xs text-muted-foreground font-mono">Model Name</label>
               <input
                 type="text"
                 value={localSettings.ollamaModel}
                 onChange={(e) => setLocalSettings(prev => ({ ...prev, ollamaModel: e.target.value }))}
-                className="w-full px-3 py-1.5 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-xl text-foreground font-mono focus:outline-none"
+                className="w-full px-3 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-xl border border-neutral-200/60 dark:border-neutral-700/60 text-foreground font-mono focus:outline-none"
                 placeholder="llama3.2"
               />
             </div>
           </div>
         )}
 
-        {/* Data Management */}
-        <div className="space-y-3 pt-4 border-t border-neutral-100 dark:border-neutral-800/60">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/70">
-            Storage & Backup
+        {/* Data Backup & Reset */}
+        <div className="space-y-3 pt-4 border-t border-neutral-200/60 dark:border-neutral-800/60">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
+            Data Backup & Privacy
           </span>
 
-          <div className="flex flex-wrap gap-2 text-xs">
-            <button
-              type="button"
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <ColoredButton
+              color="neutral"
+              size="sm"
               onClick={handleExport}
-              className="px-3 py-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors font-medium text-foreground flex items-center gap-1.5"
             >
               <Download className="w-3.5 h-3.5" />
               Export Backup
-            </button>
+            </ColoredButton>
 
-            <label className="px-3 py-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors font-medium text-foreground flex items-center gap-1.5 cursor-pointer">
-              <Upload className="w-3.5 h-3.5" />
-              Import Backup
+            <label className="cursor-pointer">
+              <ColoredButton
+                asChild
+                color="neutral"
+                size="sm"
+              >
+                <span>
+                  <Upload className="w-3.5 h-3.5" />
+                  Import Backup
+                </span>
+              </ColoredButton>
               <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
 
-            <button
-              type="button"
+            <ColoredButton
+              color="rose"
+              size="sm"
               onClick={handlePurge}
-              className="px-3 py-1.5 rounded-full text-destructive hover:bg-destructive/10 transition-colors font-medium ml-auto flex items-center gap-1.5"
+              className="ml-auto"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Reset All
-            </button>
+              Reset All Data
+            </ColoredButton>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 pt-4">
-          <button
-            type="button"
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-200/60 dark:border-neutral-800/60">
+          <ColoredButton
+            color="neutral"
+            size="default"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
           >
             Cancel
-          </button>
-          <button
-            type="button"
+          </ColoredButton>
+          <ColoredButton
+            color="amber"
+            size="default"
             onClick={handleSave}
-            className="px-5 py-2 text-xs font-medium bg-foreground text-background rounded-full hover:opacity-85 transition-opacity active-press"
           >
             Save Settings
-          </button>
+          </ColoredButton>
         </div>
       </div>
     </div>
   );
 }
+
+export default ModelSettingsModal;

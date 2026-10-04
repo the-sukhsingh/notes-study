@@ -6,10 +6,12 @@ import {
   BookOpen, 
   AlertCircle, 
   CheckCircle2, 
-  RefreshCw 
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { DocumentSource, AskAnswer, AISettings } from '@/lib/types';
 import { askNotesQuestion } from '@/lib/aiEngine';
+import { ColoredButton } from '@/components/custom/colored-button';
 
 interface AskModeProps {
   document: DocumentSource;
@@ -29,7 +31,7 @@ export function AskMode({
   const suggestedQueries = [
     `What are the core principles of ${document.topics[0]?.title || 'this topic'}?`,
     `How does the mechanism work on Page 1?`,
-    `What formulas or conditions are specified in the notes?`
+    `What key formulas or definitions are specified in the notes?`
   ];
 
   const handleAsk = async (queryToAsk?: string) => {
@@ -48,37 +50,29 @@ export function AskMode({
   };
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-6 max-w-2xl mx-auto">
       {/* Question Form */}
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Ask My Notes
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Grounded Q&A. Answers cite verbatim passages with exact page numbers.
-          </p>
-        </div>
-
+      <div className="space-y-3">
         <form 
           onSubmit={(e) => { e.preventDefault(); handleAsk(); }}
           className="flex items-center gap-2"
         >
           <input
             type="text"
-            placeholder="Ask a question about your notes..."
+            placeholder="Ask anything about your notes..."
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            className="flex-1 px-4 py-2.5 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-full text-foreground focus:outline-none placeholder:text-muted-foreground/60"
+            className="flex-1 px-4 py-2.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-xl text-foreground focus:outline-none border border-neutral-200/60 dark:border-neutral-700/60 placeholder:text-muted-foreground/60"
           />
-          <button
+          <ColoredButton
             type="submit"
+            color="cyan"
+            size="lg"
             disabled={loading || !question.trim()}
-            className="px-5 py-2.5 bg-foreground text-background text-xs font-medium rounded-full hover:opacity-85 disabled:opacity-40 transition-opacity flex items-center gap-1.5 active-press shrink-0"
           >
             {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             Ask
-          </button>
+          </ColoredButton>
         </form>
 
         {/* Suggested Queries */}
@@ -101,56 +95,60 @@ export function AskMode({
       </div>
 
       {/* Answer Output */}
-      {answer ? (
-        <article className="max-w-[70ch] space-y-8 select-text pt-2">
+      {loading ? (
+        <div className="py-24 flex flex-col items-center justify-center gap-3 text-xs text-muted-foreground">
+          <div className="w-6 h-6 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+          <span>Analyzing document text and synthesizing answer...</span>
+        </div>
+      ) : answer ? (
+        <article className="space-y-6 select-text pt-2 animate-in fade-in duration-150">
           {/* Header */}
-          <div className="flex items-baseline justify-between gap-4 pb-2 border-b border-neutral-100 dark:border-neutral-800/60">
-            <h3 className="text-lg font-semibold tracking-tight text-foreground">
+          <div className="flex items-baseline justify-between gap-4 pb-2 border-b border-neutral-200/60 dark:border-neutral-800/60">
+            <h3 className="text-base font-semibold tracking-tight text-foreground">
               {answer.question}
             </h3>
 
-            <div className="text-[11px] font-mono text-muted-foreground shrink-0">
+            <div className="text-[11px] font-mono shrink-0">
               {answer.confidence === 'high' ? (
-                <span className="text-emerald-600 dark:text-emerald-400">High match</span>
+                <span className="text-emerald-600 dark:text-emerald-400">Verified Match</span>
               ) : (
-                <span>Evidence limited</span>
+                <span className="text-amber-600 dark:text-amber-400">Evidence Partial</span>
               )}
             </div>
           </div>
 
           {/* Answer Text */}
-          <div className="text-[16px] leading-[1.75] whitespace-pre-wrap font-sans text-foreground/90">
+          <div className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans text-foreground/90">
             {answer.answer}
           </div>
 
           {/* References */}
           {answer.references && answer.references.length > 0 && (
-            <div className="space-y-3 pt-2">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/70">
+            <div className="space-y-2.5 pt-2">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
                 Supporting References ({answer.references.length})
               </span>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {answer.references.map((ref, idx) => (
                   <div
                     key={idx}
-                    className="pl-4 border-l-2 border-neutral-200 dark:border-neutral-800 space-y-1 group"
+                    className="p-3 rounded-xl bg-neutral-100/50 dark:bg-neutral-800/40 border border-neutral-200/50 dark:border-neutral-700/50 space-y-1"
                   >
                     <div className="flex items-center justify-between text-xs">
                       <button
                         type="button"
                         onClick={() => onJumpToPage(ref.pageNumber)}
-                        className="font-mono text-foreground hover:underline flex items-center gap-1"
+                        className="font-medium text-foreground hover:underline flex items-center gap-1"
                       >
-                        <BookOpen className="w-3 h-3" />
+                        <BookOpen className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
                         Page {ref.pageNumber}
                       </button>
-                      <span className="text-[11px] font-mono text-muted-foreground">
-                        {(ref.score * 100).toFixed(0)}% match
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {Math.round(ref.score * 100)}% match
                       </span>
                     </div>
-
-                    <p className="text-xs text-muted-foreground font-mono leading-relaxed italic line-clamp-2">
+                    <p className="text-xs text-muted-foreground italic leading-relaxed">
                       "{ref.passage}"
                     </p>
                   </div>
@@ -159,11 +157,9 @@ export function AskMode({
             </div>
           )}
         </article>
-      ) : (
-        <div className="py-16 text-center text-xs text-muted-foreground">
-          Type a question above to retrieve answers grounded in your material.
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
+
+export default AskMode;

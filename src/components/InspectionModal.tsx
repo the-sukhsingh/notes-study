@@ -7,9 +7,11 @@ import {
   ChevronRight, 
   Check, 
   Edit3, 
-  Eye 
+  Eye,
+  FileSearch
 } from 'lucide-react';
 import { DocumentSource, PageContent } from '@/lib/types';
+import { ColoredButton } from './custom/colored-button';
 
 interface InspectionModalProps {
   isOpen: boolean;
@@ -61,108 +63,105 @@ export function InspectionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-in fade-in duration-100">
       <div 
-        className="w-full max-w-3xl bg-background rounded-3xl p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto ring-1 ring-black/5 dark:ring-white/10"
+        className="w-full max-w-3xl bg-background rounded-2xl p-6 sm:p-7 space-y-6 max-h-[88vh] overflow-y-auto border border-neutral-200/80 dark:border-neutral-800/80 shadow-2xl"
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-2 border-b border-neutral-100 dark:border-neutral-800/60">
+        <div className="flex items-center justify-between pb-3 border-b border-neutral-200/60 dark:border-neutral-800/60">
           <div>
-            <h2 className="text-base font-semibold text-foreground">Extracted Notes Inspection</h2>
+            <div className="flex items-center gap-2">
+              <FileSearch className="w-4 h-4 text-amber-500" />
+              <h2 className="text-base font-semibold text-foreground">Extracted Notes Inspection</h2>
+            </div>
             <p className="text-xs text-muted-foreground mt-0.5 font-mono">{document.fileName}</p>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <ColoredButton
+              color="neutral"
+              size="sm"
               onClick={() => setIsEditing(!isEditing)}
-              className="px-3 py-1.5 rounded-full text-xs font-medium text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-1.5"
             >
               {isEditing ? <Eye className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
               {isEditing ? 'Preview' : 'Edit Text'}
-            </button>
+            </ColoredButton>
 
             {isEditing && (
-              <button
-                type="button"
+              <ColoredButton
+                color="emerald"
+                size="sm"
                 onClick={handleSaveChanges}
-                className="px-4 py-1.5 rounded-full text-xs font-medium bg-foreground text-background hover:opacity-85 transition-opacity active-press"
               >
-                Save
-              </button>
+                <Check className="w-3.5 h-3.5" />
+                Save Changes
+              </ColoredButton>
             )}
 
             <button 
               onClick={onClose}
-              className="p-1.5 text-muted-foreground hover:text-foreground rounded-full transition-colors ml-2"
+              className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ml-1 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Page metadata */}
-        {currentPage && (
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
-            <span>Page {currentPage.pageNumber} of {totalPages}</span>
-            <span>{currentPage.wordCount} words • Confidence: {currentPage.confidence}%</span>
+        {saveSuccess && (
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs rounded-xl flex items-center gap-2">
+            <Check className="w-3.5 h-3.5" />
+            <span>Document text updated and re-indexed successfully.</span>
           </div>
         )}
 
-        {/* Content Viewer / Editor */}
-        <div>
-          {isEditing ? (
-            <textarea
-              value={currentPage?.text || ''}
-              onChange={(e) => handleTextChange(e.target.value)}
-              className="w-full h-80 p-4 text-xs font-mono bg-neutral-50/70 dark:bg-neutral-900/60 rounded-2xl text-foreground focus:outline-none leading-relaxed resize-none"
-            />
-          ) : (
-            <div className="p-4 bg-neutral-50/50 dark:bg-neutral-900/40 rounded-2xl max-h-96 overflow-y-auto text-xs leading-relaxed font-mono whitespace-pre-wrap text-foreground select-text">
-              {currentPage?.text || 'No text extracted.'}
-            </div>
-          )}
-
-          {saveSuccess && (
-            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-mono mt-2">
-              ✓ Page corrections saved successfully.
-            </div>
-          )}
-        </div>
-
-        {/* Footer Navigation */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-2 text-xs font-mono">
+        {/* Page Switcher */}
+        <div className="flex items-center justify-between text-xs font-mono text-muted-foreground bg-neutral-100/60 dark:bg-neutral-800/50 p-2.5 rounded-xl border border-neutral-200/50 dark:border-neutral-700/50">
+          <div className="flex items-center gap-2">
             <button
-              type="button"
-              disabled={currentPageIdx === 0}
-              onClick={() => setCurrentPageIdx(prev => Math.max(0, prev - 1))}
-              className="p-1 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-30"
+              disabled={currentPageIdx <= 0}
+              onClick={() => setCurrentPageIdx(prev => prev - 1)}
+              className="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span>{currentPageIdx + 1} / {totalPages}</span>
+            <span className="text-foreground font-medium">
+              Page {currentPage.pageNumber} of {totalPages}
+            </span>
             <button
-              type="button"
               disabled={currentPageIdx >= totalPages - 1}
-              onClick={() => setCurrentPageIdx(prev => Math.min(totalPages - 1, prev + 1))}
-              className="p-1 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-30"
+              onClick={() => setCurrentPageIdx(prev => prev + 1)}
+              className="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
-          >
-            Done
-          </button>
+          <div className="flex items-center gap-4">
+            <span>{currentPage.wordCount} words</span>
+            <span>Confidence: {currentPage.confidence}%</span>
+          </div>
+        </div>
+
+        {/* Content Viewer / Editor */}
+        <div className="space-y-2">
+          {isEditing ? (
+            <textarea
+              rows={14}
+              value={currentPage.text}
+              onChange={(e) => handleTextChange(e.target.value)}
+              className="w-full p-4 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 font-mono text-xs leading-relaxed text-foreground focus:outline-none"
+            />
+          ) : (
+            <div className="p-4 rounded-xl bg-neutral-50/80 dark:bg-neutral-900/60 border border-neutral-200/50 dark:border-neutral-800/50 font-sans text-sm leading-relaxed text-foreground/90 max-h-[50vh] overflow-y-auto whitespace-pre-wrap select-text">
+              {currentPage.text}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+export default InspectionModal;

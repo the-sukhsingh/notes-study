@@ -8,7 +8,9 @@ import {
   Plus, 
   Trash2, 
   BookOpen, 
-  RefreshCw 
+  RefreshCw,
+  Sparkles,
+  RotateCw
 } from 'lucide-react';
 import { DocumentSource, Flashcard, SpacedRepetitionRating, AISettings } from '@/lib/types';
 import { generateFlashcards } from '@/lib/aiEngine';
@@ -19,23 +21,26 @@ import {
   deleteFlashcard, 
   rateFlashcard 
 } from '@/lib/storage';
+import { ColoredButton } from '@/components/custom/colored-button';
 
 interface FlashcardsModeProps {
   document: DocumentSource;
   settings: AISettings;
   onJumpToPage: (page: number) => void;
+  presetTopicId?: string;
 }
 
 export function FlashcardsMode({
   document,
   settings,
-  onJumpToPage
+  onJumpToPage,
+  presetTopicId
 }: FlashcardsModeProps) {
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [selectedTopicId, setSelectedTopicId] = useState<string>('all');
+  const [selectedTopicId, setSelectedTopicId] = useState<string>(presetTopicId || 'all');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
 
@@ -47,6 +52,12 @@ export function FlashcardsMode({
       handleGenerateCards(6);
     }
   }, [document.id]);
+
+  useEffect(() => {
+    if (presetTopicId) {
+      setSelectedTopicId(presetTopicId);
+    }
+  }, [presetTopicId]);
 
   const handleGenerateCards = async (count = 6) => {
     setGenerating(true);
@@ -77,7 +88,7 @@ export function FlashcardsMode({
 
     if (currentIndex < cards.length - 1) {
       setIsFlipped(false);
-      setTimeout(() => setCurrentIndex(prev => prev + 1), 100);
+      setTimeout(() => setCurrentIndex(prev => prev + 1), 120);
     } else {
       setIsFlipped(false);
     }
@@ -148,14 +159,14 @@ export function FlashcardsMode({
   const currentCard = cards[currentIndex];
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-6 max-w-2xl mx-auto">
       {/* Top Deck Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2">
           <select
             value={selectedTopicId}
             onChange={(e) => setSelectedTopicId(e.target.value)}
-            className="px-3 py-1.5 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-full text-foreground focus:outline-none"
+            className="px-3 py-1.5 text-xs bg-neutral-100/70 dark:bg-neutral-800/60 rounded-lg text-foreground focus:outline-none border border-neutral-200/50 dark:border-neutral-700/50"
           >
             <option value="all">All Topics ({document.topics.length})</option>
             {document.topics.map(t => (
@@ -163,46 +174,48 @@ export function FlashcardsMode({
             ))}
           </select>
 
-          <button
-            type="button"
+          <ColoredButton
+            color="neutral"
+            size="sm"
             disabled={generating}
             onClick={() => handleGenerateCards()}
-            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors active-press"
           >
             <RefreshCw className={`w-3 h-3 ${generating ? 'animate-spin' : ''}`} />
             Regenerate
-          </button>
+          </ColoredButton>
         </div>
 
-        <button
-          type="button"
-          onClick={handleCreateNewCard}
-          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors active-press"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add Card
-        </button>
+        <div className="flex items-center gap-2">
+          <ColoredButton
+            color="indigo"
+            size="sm"
+            onClick={handleCreateNewCard}
+          >
+            <Plus className="w-3 h-3" />
+            Add Card
+          </ColoredButton>
+        </div>
       </div>
 
-      {/* Main Recall Arena (No cards, no borders, pure typography) */}
+      {/* Main Flashcard Arena */}
       {generating ? (
-        <div className="py-24 flex flex-col items-center justify-center gap-3 text-xs text-muted-foreground">
-          <div className="w-5 h-5 rounded-full border-2 border-foreground border-t-transparent animate-spin" />
-          Extracting recall cards from notes...
+        <div className="py-28 flex flex-col items-center justify-center gap-3 text-xs text-muted-foreground">
+          <div className="w-6 h-6 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+          <span>Generating recall flashcards from your notes...</span>
         </div>
       ) : cards.length > 0 && currentCard ? (
-        <div className="space-y-10 max-w-2xl mx-auto">
-          {/* Progress & Card Details */}
+        <div className="space-y-6">
+          {/* Progress Bar & Metadata */}
           <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
-            <span>
-              {currentIndex + 1} <span className="opacity-50">/ {cards.length}</span>
+            <span className="font-medium text-foreground">
+              Card {currentIndex + 1} <span className="opacity-50">/ {cards.length}</span>
             </span>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => onJumpToPage(currentCard.sourcePage)}
-                className="hover:underline flex items-center gap-1"
+                className="hover:text-foreground flex items-center gap-1 text-[11px]"
               >
                 <BookOpen className="w-3 h-3" />
                 Page {currentCard.sourcePage}
@@ -214,178 +227,243 @@ export function FlashcardsMode({
                   setEditingCard(currentCard);
                   setEditModalOpen(true);
                 }}
-                className="hover:text-foreground"
-                title="Edit"
+                className="hover:text-foreground p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                title="Edit Card"
               >
-                <Edit3 className="w-3 h-3" />
+                <Edit3 className="w-3.5 h-3.5" />
               </button>
 
               <button
                 type="button"
                 onClick={handleDeleteCurrentCard}
-                className="hover:text-destructive"
-                title="Delete"
+                className="hover:text-rose-500 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                title="Delete Card"
               >
-                <Trash2 className="w-3 h-3" />
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
 
-          {/* Question / Prompt Display */}
-          <div 
-            onClick={() => setIsFlipped(!isFlipped)}
-            className="py-12 px-6 rounded-3xl hover:bg-neutral-100/40 dark:hover:bg-neutral-800/30 transition-colors cursor-pointer text-center select-none space-y-6"
-          >
-            <div className="space-y-3">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/60">
-                {!isFlipped ? 'Prompt (Click or Space to reveal)' : 'Answer'}
-              </span>
-
-              <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground leading-snug">
-                {currentCard.front}
-              </h3>
-            </div>
-
-            {isFlipped && (
-              <div className="pt-6 animate-in fade-in duration-150 space-y-2 border-t border-neutral-100 dark:border-neutral-800/60">
-                <p className="text-lg sm:text-xl font-normal text-foreground/90 leading-relaxed whitespace-pre-wrap">
-                  {currentCard.back}
-                </p>
-              </div>
-            )}
+          {/* Progress track */}
+          <div className="w-full h-1 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-indigo-500 transition-all duration-300"
+              style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
+            />
           </div>
 
-          {/* Rating Buttons */}
-          <div className="space-y-4 pt-2">
+          {/* Interactive Flashcard Surface */}
+          <div
+            onClick={() => setIsFlipped(!isFlipped)}
+            className="group relative min-h-[260px] sm:min-h-[300px] p-8 sm:p-10 rounded-2xl bg-white/70 dark:bg-neutral-900/80 border border-neutral-200/80 dark:border-neutral-800/80 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between select-none"
+          >
+            {/* Top Card Badge */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground/80">
+              <span className="uppercase tracking-wider font-mono text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                {currentCard.cardType}
+              </span>
+              <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1 group-hover:text-foreground transition-colors">
+                <RotateCw className="w-3 h-3" />
+                {isFlipped ? 'Click to show front' : 'Click or Space to flip'}
+              </span>
+            </div>
+
+            {/* Card Content Area */}
+            <div className="my-auto py-4 text-center">
+              {!isFlipped ? (
+                <div className="space-y-3">
+                  <h3 className="text-xl sm:text-2xl font-medium tracking-tight text-foreground leading-snug">
+                    {currentCard.front}
+                  </h3>
+                </div>
+              ) : (
+                <div className="space-y-4 animate-in fade-in zoom-in-95 duration-150">
+                  <p className="text-lg sm:text-xl font-normal text-foreground leading-relaxed whitespace-pre-wrap">
+                    {currentCard.back}
+                  </p>
+                  {currentCard.sourcePassage && (
+                    <blockquote className="text-xs text-muted-foreground italic border-l-2 border-indigo-400/50 pl-3 max-w-lg mx-auto text-left">
+                      "{currentCard.sourcePassage}"
+                    </blockquote>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Card Footer */}
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground/70 font-mono pt-2 border-t border-neutral-100 dark:border-neutral-800/60">
+              <span>Reps: {currentCard.reps || 0}</span>
+              <span>Interval: {currentCard.intervalDays || 1}d</span>
+            </div>
+          </div>
+
+          {/* Action Row */}
+          <div className="space-y-3">
             {isFlipped ? (
-              <div className="grid grid-cols-4 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleRate('again')}
-                  className="py-2.5 px-3 rounded-2xl bg-neutral-100/60 dark:bg-neutral-800/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 text-foreground text-xs font-medium transition-all active-press flex flex-col items-center"
-                >
-                  <span>Again</span>
-                  <span className="text-[10px] text-muted-foreground font-mono">1d [1]</span>
-                </button>
+              <div className="space-y-2">
+                <div className="text-center text-[11px] text-muted-foreground font-mono">
+                  Rate your recall difficulty (Keyboard 1–4):
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  <ColoredButton
+                    color="rose"
+                    size="lg"
+                    onClick={() => handleRate('again')}
+                    className="flex flex-col h-auto py-2"
+                  >
+                    <span className="font-semibold text-xs">Again</span>
+                    <span className="text-[10px] opacity-75 font-mono">1d [1]</span>
+                  </ColoredButton>
 
-                <button
-                  type="button"
-                  onClick={() => handleRate('hard')}
-                  className="py-2.5 px-3 rounded-2xl bg-neutral-100/60 dark:bg-neutral-800/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 text-foreground text-xs font-medium transition-all active-press flex flex-col items-center"
-                >
-                  <span>Hard</span>
-                  <span className="text-[10px] text-muted-foreground font-mono">2d [2]</span>
-                </button>
+                  <ColoredButton
+                    color="orange"
+                    size="lg"
+                    onClick={() => handleRate('hard')}
+                    className="flex flex-col h-auto py-2"
+                  >
+                    <span className="font-semibold text-xs">Hard</span>
+                    <span className="text-[10px] opacity-75 font-mono">2d [2]</span>
+                  </ColoredButton>
 
-                <button
-                  type="button"
-                  onClick={() => handleRate('good')}
-                  className="py-2.5 px-3 rounded-2xl bg-neutral-100/60 dark:bg-neutral-800/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 text-foreground text-xs font-medium transition-all active-press flex flex-col items-center"
-                >
-                  <span>Good</span>
-                  <span className="text-[10px] text-muted-foreground font-mono">4d [3]</span>
-                </button>
+                  <ColoredButton
+                    color="teal"
+                    size="lg"
+                    onClick={() => handleRate('good')}
+                    className="flex flex-col h-auto py-2"
+                  >
+                    <span className="font-semibold text-xs">Good</span>
+                    <span className="text-[10px] opacity-75 font-mono">4d [3]</span>
+                  </ColoredButton>
 
-                <button
-                  type="button"
-                  onClick={() => handleRate('easy')}
-                  className="py-2.5 px-3 rounded-2xl bg-neutral-100/60 dark:bg-neutral-800/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 text-foreground text-xs font-medium transition-all active-press flex flex-col items-center"
-                >
-                  <span>Easy</span>
-                  <span className="text-[10px] text-muted-foreground font-mono">7d [4]</span>
-                </button>
+                  <ColoredButton
+                    color="emerald"
+                    size="lg"
+                    onClick={() => handleRate('easy')}
+                    className="flex flex-col h-auto py-2"
+                  >
+                    <span className="font-semibold text-xs">Easy</span>
+                    <span className="text-[10px] opacity-75 font-mono">7d [4]</span>
+                  </ColoredButton>
+                </div>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => setIsFlipped(true)}
-                className="w-full py-3 bg-neutral-100/60 dark:bg-neutral-800/50 hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50 text-foreground font-medium text-xs rounded-full transition-colors active-press"
-              >
-                Reveal Answer (Space)
-              </button>
+              <div className="flex items-center justify-between gap-3">
+                <ColoredButton
+                  color="neutral"
+                  size="default"
+                  disabled={currentIndex === 0}
+                  onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </ColoredButton>
+
+                <ColoredButton
+                  color="indigo"
+                  size="lg"
+                  className="flex-1 max-w-xs mx-auto"
+                  onClick={() => setIsFlipped(true)}
+                >
+                  Reveal Answer (Space)
+                </ColoredButton>
+
+                <ColoredButton
+                  color="neutral"
+                  size="default"
+                  disabled={currentIndex >= cards.length - 1}
+                  onClick={() => setCurrentIndex(prev => Math.min(cards.length - 1, prev + 1))}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </ColoredButton>
+              </div>
             )}
-
-            {/* Bottom Nav arrows */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <button
-                type="button"
-                disabled={currentIndex === 0}
-                onClick={() => {
-                  setIsFlipped(false);
-                  setCurrentIndex(prev => Math.max(0, prev - 1));
-                }}
-                className="flex items-center gap-1 hover:text-foreground disabled:opacity-30"
-              >
-                <ChevronLeft className="w-4 h-4" /> Previous
-              </button>
-
-              <span className="text-[11px] font-mono opacity-60">
-                Space to flip • Arrow keys to navigate
-              </span>
-
-              <button
-                type="button"
-                disabled={currentIndex >= cards.length - 1}
-                onClick={() => {
-                  setIsFlipped(false);
-                  setCurrentIndex(prev => Math.min(cards.length - 1, prev + 1));
-                }}
-                className="flex items-center gap-1 hover:text-foreground disabled:opacity-30"
-              >
-                Next <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
       ) : (
-        <div className="py-20 text-center text-xs text-muted-foreground">
-          No flashcards available. Click "Regenerate" above to create recall cards.
+        <div className="py-20 text-center space-y-4">
+          <p className="text-sm text-muted-foreground">No flashcards found for this topic.</p>
+          <ColoredButton color="indigo" onClick={() => handleGenerateCards()}>
+            Generate New Flashcards
+          </ColoredButton>
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Card Modal */}
       {editModalOpen && editingCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-background rounded-3xl p-6 space-y-4 ring-1 ring-black/5 dark:ring-white/10 text-xs">
-            <h3 className="text-base font-semibold text-foreground">Edit Flashcard</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="w-full max-w-lg bg-background rounded-2xl p-6 space-y-4 border border-border shadow-xl">
+            <h4 className="font-semibold text-base text-foreground">
+              {editingCard.front ? 'Edit Flashcard' : 'New Flashcard'}
+            </h4>
 
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-muted-foreground">Prompt</label>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-muted-foreground mb-1">Front (Prompt / Question)</label>
                 <textarea
                   rows={3}
                   value={editingCard.front}
                   onChange={(e) => setEditingCard({ ...editingCard, front: e.target.value })}
-                  className="w-full p-2.5 bg-neutral-100/50 dark:bg-neutral-800/40 rounded-xl text-foreground focus:outline-none"
+                  className="w-full p-2.5 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none"
+                  placeholder="Enter the question or concept prompt..."
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-muted-foreground">Answer</label>
+              <div>
+                <label className="block text-muted-foreground mb-1">Back (Answer / Explanation)</label>
                 <textarea
                   rows={4}
                   value={editingCard.back}
                   onChange={(e) => setEditingCard({ ...editingCard, back: e.target.value })}
-                  className="w-full p-2.5 bg-neutral-100/50 dark:bg-neutral-800/40 rounded-xl text-foreground focus:outline-none"
+                  className="w-full p-2.5 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none"
+                  placeholder="Enter the detailed answer..."
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-muted-foreground mb-1">Source Page Reference</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={document.pageCount}
+                    value={editingCard.sourcePage}
+                    onChange={(e) => setEditingCard({ ...editingCard, sourcePage: parseInt(e.target.value) || 1 })}
+                    className="w-full p-2 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-muted-foreground mb-1">Card Type</label>
+                  <select
+                    value={editingCard.cardType}
+                    onChange={(e) => setEditingCard({ ...editingCard, cardType: e.target.value as any })}
+                    className="w-full p-2 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none"
+                  >
+                    <option value="concept">Concept</option>
+                    <option value="definition">Definition</option>
+                    <option value="fact">Key Fact</option>
+                    <option value="application">Application</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <ColoredButton
+                color="neutral"
+                size="sm"
                 onClick={() => setEditModalOpen(false)}
-                className="px-4 py-2 text-muted-foreground hover:text-foreground"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </ColoredButton>
+              <ColoredButton
+                color="indigo"
+                size="sm"
                 onClick={() => handleSaveCardModal(editingCard)}
-                className="px-4 py-2 bg-foreground text-background rounded-full hover:opacity-85 active-press font-medium"
               >
-                Save
-              </button>
+                Save Flashcard
+              </ColoredButton>
             </div>
           </div>
         </div>
@@ -393,3 +471,5 @@ export function FlashcardsMode({
     </div>
   );
 }
+
+export default FlashcardsMode;

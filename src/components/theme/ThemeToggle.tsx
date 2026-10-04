@@ -1,11 +1,17 @@
 "use client"
 
-import { useTheme } from "next-themes"
+import * as React from "react";
+import { useTheme } from "next-themes";
 import { SVGProps } from "react";
 
 
 export function ModeToggle() {
+    const [mounted, setMounted] = React.useState(false);
     const { theme, systemTheme, setTheme } = useTheme();
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const toggleTheme = () => {
         if (theme === 'system') {
@@ -22,26 +28,32 @@ export function ModeToggle() {
             }
         }
     }
-    const handleThemeToggle = () => {
-        toggleTheme();
-    };
 
+    if (!mounted) {
+        return (
+            <button
+                aria-label="Toggle theme"
+                className="rounded-md size-8 flex justify-center items-center aspect-square h-fit relative overflow-hidden bg-accent opacity-0"
+                type="button"
+            />
+        );
+    }
+
+    const isDark = theme === 'dark' || (theme === 'system' && systemTheme === 'dark');
 
     return (
         <button
             aria-label="Toggle theme"
             aria-description="Toggle light & dark"
-            onClick={handleThemeToggle}
-            className="rounded-md size-8 flex justify-center items-center aspect-square h-fit relative overflow-hidden bg-accent active:translate-y-px shadow-inner/0 hover:shadow-inner transition-all duration-75 ease-out"
+            onClick={toggleTheme}
+            className="rounded-md size-8 flex justify-center items-center aspect-square h-fit relative overflow-hidden bg-accent active:translate-y-px shadow-inner/0 hover:shadow-inner transition-all duration-75 ease-out cursor-pointer"
             type="button"
         >
-            {
-                theme === 'dark' || (theme === 'system' && systemTheme === 'dark') ? (
-                    <Moon className="absolute top-0 left-0 translate-y-1/2 translate-x-1/2 size-4 scale-0 rotate-90 dark:scale-100 dark:rotate-0" />
-                ) : (
-                    <Sun className="size-4" />
-                )
-            }
+            {isDark ? (
+                <Moon className="size-4" />
+            ) : (
+                <Sun className="size-4" />
+            )}
         </button>
     )
 }

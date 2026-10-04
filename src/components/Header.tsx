@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { DocumentSource, AISettings } from '@/lib/types';
 import { ModeToggle as ThemeToggle } from './theme/ThemeToggle';
+import { ColoredButton } from './custom/colored-button';
 
 interface HeaderProps {
   documents: DocumentSource[];
@@ -32,15 +33,15 @@ export function Header({
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-md transition-colors">
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 w-full bg-background/85 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50 transition-colors">
+      <div className="max-w-6xl mx-auto px-6 h-15 flex items-center justify-between gap-4">
         {/* Brand & Document Switcher */}
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onOpenLibrary}
-            className="flex items-center gap-2 text-foreground hover:opacity-70 transition-opacity shrink-0 group active-press"
+            className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity shrink-0 group cursor-pointer"
           >
-            <div className="w-6 h-6 rounded-md bg-foreground text-background flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-foreground text-background flex items-center justify-center font-bold text-xs shadow-xs">
               <BookOpen className="w-3.5 h-3.5" />
             </div>
             <span className="font-semibold text-sm tracking-tight text-foreground">
@@ -50,11 +51,11 @@ export function Header({
 
           <span className="text-muted-foreground/30 text-xs hidden sm:inline select-none">/</span>
 
-          {/* Seamless Document Switcher */}
+          {/* Seamless Document Switcher Dropdown */}
           <div className="relative min-w-0">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-neutral-100/70 dark:hover:bg-neutral-800/60 text-xs font-medium text-foreground transition-colors max-w-[200px] sm:max-w-xs truncate active-press"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-neutral-100/70 dark:hover:bg-neutral-800/60 text-xs font-medium text-foreground transition-colors max-w-[200px] sm:max-w-xs truncate cursor-pointer"
             >
               <span className="truncate text-foreground/90 font-medium">
                 {activeDocument ? activeDocument.title : 'All Notes'}
@@ -68,11 +69,11 @@ export function Header({
                   className="fixed inset-0 z-30" 
                   onClick={() => setDropdownOpen(false)} 
                 />
-                <div className="absolute left-0 top-full mt-2 w-72 rounded-2xl bg-background/95 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 z-40 py-2 animate-in fade-in duration-100 text-xs">
-                  <div className="px-3 py-1.5 text-[10px] font-medium tracking-wider text-muted-foreground/80 uppercase">
-                    Your Library ({documents.length})
+                <div className="absolute left-0 top-full mt-2 w-76 rounded-2xl bg-background/95 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 shadow-2xl z-40 py-2 animate-in fade-in duration-100 text-xs border border-neutral-200/60 dark:border-neutral-800/60">
+                  <div className="px-3.5 py-1.5 text-[10px] font-mono tracking-wider text-muted-foreground/80 uppercase">
+                    Your Course Materials ({documents.length})
                   </div>
-                  <div className="max-h-60 overflow-y-auto py-1 space-y-0.5">
+                  <div className="max-h-60 overflow-y-auto py-1 space-y-0.5 px-1.5">
                     {documents.map((doc) => (
                       <button
                         key={doc.id}
@@ -80,27 +81,27 @@ export function Header({
                           onSelectDocument(doc.id);
                           setDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-3 py-2 flex items-center justify-between rounded-xl hover:bg-neutral-100/80 dark:hover:bg-neutral-800/70 transition-colors ${
-                          activeDocument?.id === doc.id ? 'bg-neutral-100/60 dark:bg-neutral-800/50 font-medium' : ''
+                        className={`w-full text-left px-3 py-2 flex items-center justify-between rounded-xl hover:bg-neutral-100/80 dark:hover:bg-neutral-800/70 transition-colors cursor-pointer ${
+                          activeDocument?.id === doc.id ? 'bg-neutral-100/70 dark:bg-neutral-800/60 font-medium' : ''
                         }`}
                       >
                         <div className="min-w-0 pr-2">
                           <p className="truncate text-foreground text-xs">{doc.title}</p>
-                          <p className="text-[10px] text-muted-foreground/70">{doc.pageCount} pages • {doc.wordCount} words</p>
+                          <p className="text-[10px] text-muted-foreground/70 font-mono">{doc.pageCount} pages • {doc.wordCount.toLocaleString()} words</p>
                         </div>
                         {activeDocument?.id === doc.id && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                         )}
                       </button>
                     ))}
                   </div>
-                  <div className="mt-1 pt-1 border-t border-neutral-100 dark:border-neutral-800">
+                  <div className="mt-1 pt-1 border-t border-neutral-100 dark:border-neutral-800/80 px-1.5">
                     <button
                       onClick={() => {
                         onOpenLibrary();
                         setDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3 py-2 text-foreground/80 hover:text-foreground hover:bg-neutral-100/80 dark:hover:bg-neutral-800/70 rounded-xl flex items-center gap-2 font-medium"
+                      className="w-full text-left px-3 py-2 text-foreground hover:bg-neutral-100/80 dark:hover:bg-neutral-800/70 rounded-xl flex items-center gap-2 font-medium cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5 text-muted-foreground" />
                       Import New Notes
@@ -113,11 +114,11 @@ export function Header({
         </div>
 
         {/* Right Actions: Local badge, Library, Settings, Theme */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           {/* Privacy & AI Engine Status Badge */}
           <button
             onClick={onOpenSettings}
-            className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-neutral-100/70 dark:hover:bg-neutral-800/60 text-xs text-muted-foreground hover:text-foreground transition-colors active-press"
+            className="flex items-center gap-2 px-2.5 py-1 rounded-lg hover:bg-neutral-100/70 dark:hover:bg-neutral-800/60 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title="Configure Local Model & Privacy"
           >
             <span className="relative flex h-1.5 w-1.5">
@@ -128,23 +129,24 @@ export function Header({
               100% Local
             </span>
             <span className="text-muted-foreground/40 hidden sm:inline">•</span>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-[11px] text-muted-foreground font-mono">
               {settings.provider === 'ollama' ? settings.ollamaModel : 'On-Device AI'}
             </span>
           </button>
 
-          <button
+          <ColoredButton
+            color="neutral"
+            size="sm"
             onClick={onOpenLibrary}
-            className="p-1.5 rounded-lg hover:bg-neutral-100/70 dark:hover:bg-neutral-800/60 text-muted-foreground hover:text-foreground transition-colors active-press"
-            title="Library"
-            aria-label="Library"
+            className="hidden sm:inline-flex"
           >
-            <Library className="w-4 h-4" />
-          </button>
+            <Library className="w-3.5 h-3.5" />
+            Library
+          </ColoredButton>
 
           <button
             onClick={onOpenSettings}
-            className="p-1.5 rounded-lg hover:bg-neutral-100/70 dark:hover:bg-neutral-800/60 text-muted-foreground hover:text-foreground transition-colors active-press"
+            className="size-8 rounded-lg flex items-center justify-center hover:bg-neutral-100/70 dark:hover:bg-neutral-800/60 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title="Settings & Privacy"
             aria-label="Settings"
           >
@@ -157,3 +159,5 @@ export function Header({
     </header>
   );
 }
+
+export default Header;
