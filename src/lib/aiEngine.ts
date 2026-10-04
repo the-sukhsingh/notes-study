@@ -52,13 +52,15 @@ export async function testOllamaConnection(endpoint = 'http://localhost:11434'):
 /**
  * Generates flashcards using either local Ollama or the built-in deterministic offline extractor.
  * When using Ollama, content is sent page by page to ensure full document coverage.
+ * onItemGenerated fires each time a single card is ready for display.
  */
 export async function generateFlashcards(
   doc: DocumentSource, 
   topicId?: string, 
   count = 6, 
   settings: AISettings = DEFAULT_AI_SETTINGS,
-  onProgress?: (page: number, totalPages: number) => void
+  onProgress?: (page: number, totalPages: number) => void,
+  onItemGenerated?: (card: Flashcard, index: number) => void
 ): Promise<Flashcard[]> {
   const filteredChunks = topicId 
     ? doc.chunks.filter(c => c.topicId === topicId)
@@ -69,7 +71,7 @@ export async function generateFlashcards(
   // If Ollama is chosen and configured, try calling it
   if (settings.provider === 'ollama') {
     try {
-      const ollamaCards = await generateFlashcardsWithOllama(doc, relevantChunks, count, settings, onProgress);
+      const ollamaCards = await generateFlashcardsWithOllama(doc, relevantChunks, count, settings, onProgress, onItemGenerated);
       if (ollamaCards.length > 0) return ollamaCards;
     } catch (e) {
       console.warn('Ollama generation failed or timed out, falling back to built-in extractor:', e);
@@ -77,12 +79,17 @@ export async function generateFlashcards(
   }
 
   // Built-in offline extractor
-  return generateBuiltinFlashcards(doc, relevantChunks, count);
+  const builtinCards = generateBuiltinFlashcards(doc, relevantChunks, count);
+  if (onItemGenerated) {
+    builtinCards.forEach((card, idx) => onItemGenerated(card, idx));
+  }
+  return builtinCards;
 }
 
 /**
  * Generates a quiz using either Ollama or built-in engine.
  * When using Ollama, content is sent page by page to ensure full document coverage.
+ * onItemGenerated fires each time a single question is ready for display.
  */
 export async function generateQuiz(
   doc: DocumentSource,
@@ -90,7 +97,8 @@ export async function generateQuiz(
   count = 5,
   difficulty: 'easy' | 'medium' | 'hard' = 'medium',
   settings: AISettings = DEFAULT_AI_SETTINGS,
-  onProgress?: (page: number, totalPages: number) => void
+  onProgress?: (page: number, totalPages: number) => void,
+  onItemGenerated?: (question: QuizQuestion, index: number) => void
 ): Promise<QuizQuestion[]> {
   const filteredChunks = topicId 
     ? doc.chunks.filter(c => c.topicId === topicId)
@@ -100,39 +108,35 @@ export async function generateQuiz(
 
   if (settings.provider === 'ollama') {
     try {
-      const ollamaQuiz = await generateQuizWithOllama(doc, relevantChunks, count, difficulty, settings, onProgress);
+      const ollamaQuiz = await generateQuizWithOllama(doc, relevantChunks, count, difficulty, settings, onProgress, onItemGenerated);
       if (ollamaQuiz.length > 0) return ollamaQuiz;
     } catch (e) {
       console.warn('Ollama quiz generation fallback:', e);
     }
   }
 
-  return generateBuiltinQuiz(doc, relevantChunks, count, difficulty);
+  const builtinQuiz = generateBuiltinQuiz(doc, relevantChunks, count, difficulty);
+  if (onItemGenerated) {
+    builtinQuiz.forEach((q, idx) => onItemGenerated(q, idx));
+  }
+  return builtinQuiz;
 }
 
 /**
  * Answers a question grounded in the document notes.
+ * When Ollama is configured, the LLM handles relevance judgment.
+ * When using builtin, TF-IDF retrieval with a low threshold is used.
  */
 export async function askNotesQuestion(
   question: string,
   doc: DocumentSource,
   settings: AISettings = DEFAULT_AI_SETTINGS
 ): Promise<AskAnswer> {
-  // 1. Retrieve most relevant chunks using BM25 / keyword scoring
+  // 1. Retrieve most relevant chunks using TF-IDF keyword scoring
   const ranked = rankChunksByRelevance(question, doc.chunks);
   const topChunks = ranked.slice(0, 3);
 
-  if (topChunks.length === 0 || topChunks[0].score < 0.05) {
-    return {
-      question,
-      answer: "I searched through your notes for this document, but could not find any passages directly relevant to your question. To keep answers honest and prevent hallucinations, I avoid guessing outside your notes.",
-      confidence: 'low',
-      groundedInNotes: false,
-      references: []
-    };
-  }
-
-  // If Ollama is active, synthesize via Ollama
+  // If Ollama is active, let it handle relevance — it can decide what's relevant
   if (settings.provider === 'ollama') {
     try {
       const ollamaAnswer = await askOllamaWithChunks(question, topChunks, doc, settings);
@@ -140,6 +144,32 @@ export async function askNotesQuestion(
     } catch (e) {
       console.warn('Ollama ask notes fallback:', e);
     }
+  }
+
+  // Built-in path: require some relevance, but with a low threshold
+  if (topChunks.length === 0 || topChunks[0].score < 0.01) {
+    // For very short queries or no keyword overlap, use first chunk as context
+    const fallbackChunk = doc.chunks[0];
+    if (!fallbackChunk) {
+      return {
+        question,
+        answer: "No content found in this document to answer your question.",
+        confidence: 'low',
+        groundedInNotes: false,
+        references: []
+      };
+    }
+    return {
+      question,
+      answer: `Based on Page ${fallbackChunk.pageNumber} of your notes:\n\n${fallbackChunk.text.slice(0, 300)}${fallbackChunk.text.length > 300 ? '...' : ''}`,
+      confidence: 'low',
+      groundedInNotes: true,
+      references: [{
+        pageNumber: fallbackChunk.pageNumber,
+        passage: fallbackChunk.text,
+        score: 0
+      }]
+    };
   }
 
   // Built-in extractive answer synthesizer
@@ -546,7 +576,8 @@ async function generateFlashcardsWithOllama(
   chunks: Chunk[], 
   count: number, 
   settings: AISettings,
-  onProgress?: (page: number, totalPages: number) => void
+  onProgress?: (page: number, totalPages: number) => void,
+  onItemGenerated?: (card: Flashcard, index: number) => void
 ): Promise<Flashcard[]> {
   const allCards: Flashcard[] = [];
   const seenFronts = new Set<string>();
@@ -565,7 +596,7 @@ async function generateFlashcardsWithOllama(
   for (let i = 0; i < sortedPages.length && allCards.length < count; i++) {
     const pageNum = sortedPages[i];
     const pageChunks = chunksByPage.get(pageNum)!;
-    const contextSnippet = pageChunks.map(c => c.text).join('\n\n');
+    const contextSnippet = pageChunks.map(c => c.text.slice(0, 2000)).join('\n\n');
     const remaining = count - allCards.length;
 
     onProgress?.(pageNum, totalPages);
@@ -608,7 +639,7 @@ ${contextSnippet}`;
           const front = (item.front || '').trim();
           if (!front || seenFronts.has(front.toLowerCase())) continue;
           seenFronts.add(front.toLowerCase());
-          allCards.push({
+          const card: Flashcard = {
             id: `ollama-card-${Date.now()}-${allCards.length}`,
             docId: doc.id,
             front,
@@ -618,7 +649,9 @@ ${contextSnippet}`;
             sourcePassage: item.sourcePassage || pageChunks[0]?.text || '',
             reps: 0,
             intervalDays: 1
-          });
+          };
+          allCards.push(card);
+          onItemGenerated?.(card, allCards.length - 1);
         }
       }
     } catch (e) {
@@ -635,7 +668,8 @@ async function generateQuizWithOllama(
   count: number,
   difficulty: 'easy' | 'medium' | 'hard',
   settings: AISettings,
-  onProgress?: (page: number, totalPages: number) => void
+  onProgress?: (page: number, totalPages: number) => void,
+  onItemGenerated?: (question: QuizQuestion, index: number) => void
 ): Promise<QuizQuestion[]> {
   const allQuestions: QuizQuestion[] = [];
   const seenQuestions = new Set<string>();
@@ -654,7 +688,7 @@ async function generateQuizWithOllama(
   for (let i = 0; i < sortedPages.length && allQuestions.length < count; i++) {
     const pageNum = sortedPages[i];
     const pageChunks = chunksByPage.get(pageNum)!;
-    const contextSnippet = pageChunks.map(c => c.text).join('\n\n');
+    const contextSnippet = pageChunks.map(c => c.text.slice(0, 2000)).join('\n\n');
     const remaining = count - allQuestions.length;
 
     onProgress?.(pageNum, totalPages);
@@ -700,7 +734,7 @@ ${contextSnippet}`;
           const questionText = (q.question || '').trim();
           if (!questionText || seenQuestions.has(questionText.toLowerCase())) continue;
           seenQuestions.add(questionText.toLowerCase());
-          allQuestions.push({
+          const question: QuizQuestion = {
             id: `ollama-quiz-${Date.now()}-${allQuestions.length}`,
             docId: doc.id,
             type: q.type || 'multiple-choice',
@@ -711,7 +745,9 @@ ${contextSnippet}`;
             sourcePage: q.sourcePage || pageNum,
             sourcePassage: q.sourcePassage || pageChunks[0]?.text || '',
             difficulty
-          });
+          };
+          allQuestions.push(question);
+          onItemGenerated?.(question, allQuestions.length - 1);
         }
       }
     } catch (e) {

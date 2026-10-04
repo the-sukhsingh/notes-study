@@ -42,6 +42,7 @@ export function QuizMode({
   const [isFinished, setIsFinished] = useState(false);
   const [loading, setLoading] = useState(false);
   const [convertedCardsCount, setConvertedCardsCount] = useState<number | null>(null);
+  const [genProgress, setGenProgress] = useState<{ page: number; total: number } | null>(null);
 
   const [selectedTopicId, setSelectedTopicId] = useState<string>(presetTopicId || 'all');
   const [questionCount, setQuestionCount] = useState<number>(5);
@@ -57,7 +58,8 @@ export function QuizMode({
     } else {
       handleGenerateQuiz();
     }
-  }, [document.id, presetQuestions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [document.id]);
 
   useEffect(() => {
     if (presetTopicId) {
@@ -76,18 +78,28 @@ export function QuizMode({
     }
 
     setLoading(true);
+    setQuestions([]);
+    setCurrentQIndex(0);
+    setSelectedAnswers({});
+    setSubmittedAnswers({});
+    setIsFinished(false);
+    setGenProgress(null);
     try {
       const topicId = selectedTopicId === 'all' ? undefined : selectedTopicId;
-      const res = await generateQuiz(document, topicId, questionCount, difficulty, settings);
-      setQuestions(res);
-      setCurrentQIndex(0);
-      setSelectedAnswers({});
-      setSubmittedAnswers({});
-      setIsFinished(false);
+      const res = await generateQuiz(
+        document,
+        topicId,
+        questionCount,
+        difficulty,
+        settings,
+        (page, total) => setGenProgress({ page, total }),
+        (question) => setQuestions(prev => [...prev, question])
+      );
     } catch (e) {
       console.error('Quiz generation error:', e);
     } finally {
       setLoading(false);
+      setGenProgress(null);
     }
   };
 
@@ -242,10 +254,63 @@ export function QuizMode({
         </div>
       </div>
 
-      {loading ? (
+      {loading && questions.length === 0 ? (
         <div className="py-24 flex flex-col items-center justify-center gap-3 text-xs text-muted-foreground">
           <div className="w-6 h-6 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
           <span>Generating quiz questions from your notes...</span>
+          {genProgress && (
+            <span className="text-[10px] font-mono text-muted-foreground/60">
+              Page {genProgress.page} of {genProgress.total}
+            </span>
+          )}
+        </div>
+      ) : loading && questions.length > 0 ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
+            <div className="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+            <span>Generating... {questions.length} question{questions.length !== 1 ? 's' : ''} ready</span>
+            {genProgress && (
+              <span className="font-mono text-[10px] text-muted-foreground/60">
+                Page {genProgress.page}/{genProgress.total}
+              </span>
+            )}
+          </div>
+          {currentQ && (
+            <div className="space-y-4">
+              <div className="space-y-1.5 pt-1 text-center max-w-xl mx-auto">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">
+                  {currentQ.type === 'multiple-choice' ? 'Multiple Choice' : 'True / False'}
+                </span>
+                <h3 className="text-base sm:text-lg font-serif font-normal text-foreground leading-snug tracking-tight text-wrap balance">
+                  {currentQ.question}
+                </h3>
+              </div>
+              <div className="space-y-2 pt-1 max-w-xl mx-auto">
+                {(currentQ.options || []).map((option, idx) => {
+                  const isSelected = currentUserAns === option;
+                  let optionStyle = "bg-neutral-100/50 dark:bg-neutral-800/40 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/70 text-foreground";
+                  if (isSelected) {
+                    optionStyle = "bg-neutral-200/80 dark:bg-neutral-700/80 font-medium";
+                  }
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSelectOption(currentQ.id, option)}
+                      className={`w-full py-2.5 px-4 rounded-xl text-left text-xs sm:text-sm transition-all flex items-center justify-between gap-3 cursor-pointer active-press ${optionStyle}`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-5 h-5 rounded-md bg-black/5 dark:bg-white/10 text-[11px] font-mono flex items-center justify-center shrink-0">
+                          {String.fromCharCode(65 + idx)}
+                        </span>
+                        <span className="truncate">{option}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       ) : isFinished ? (
         /* Quiz Finished Overview */

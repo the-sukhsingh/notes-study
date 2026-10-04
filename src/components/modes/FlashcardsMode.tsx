@@ -48,6 +48,7 @@ export function FlashcardsMode({
   const [selectedTopicId, setSelectedTopicId] = useState<string>(presetTopicId || 'all');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
+  const [genProgress, setGenProgress] = useState<{ page: number; total: number } | null>(null);
 
   useEffect(() => {
     const stored = getFlashcardsForDoc(document.id);
@@ -66,18 +67,27 @@ export function FlashcardsMode({
 
   const handleGenerateCards = async (count = 6) => {
     setGenerating(true);
+    setCards([]);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setIsSessionFinished(false);
+    setGenProgress(null);
     try {
       const topicId = selectedTopicId === 'all' ? undefined : selectedTopicId;
-      const newCards = await generateFlashcards(document, topicId, count, settings);
-      setCards(newCards);
+      const newCards = await generateFlashcards(
+        document,
+        topicId,
+        count,
+        settings,
+        (page, total) => setGenProgress({ page, total }),
+        (card) => setCards(prev => [...prev, card])
+      );
       saveFlashcardsForDoc(document.id, newCards);
-      setCurrentIndex(0);
-      setIsFlipped(false);
-      setIsSessionFinished(false);
     } catch (e) {
       console.error('Failed to generate flashcards:', e);
     } finally {
       setGenerating(false);
+      setGenProgress(null);
     }
   };
 
@@ -229,10 +239,63 @@ export function FlashcardsMode({
       </div>
 
       {/* Main Flashcard Arena */}
-      {generating ? (
+      {generating && cards.length === 0 ? (
         <div className="py-24 flex flex-col items-center justify-center gap-3 text-xs text-muted-foreground">
           <div className="w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
           <span>Generating recall flashcards from your notes...</span>
+          {genProgress && (
+            <span className="text-[10px] font-mono text-muted-foreground/60">
+              Page {genProgress.page} of {genProgress.total}
+            </span>
+          )}
+        </div>
+      ) : generating && cards.length > 0 ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
+            <div className="w-3.5 h-3.5 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+            <span>Generating... {cards.length} card{cards.length !== 1 ? 's' : ''} ready</span>
+            {genProgress && (
+              <span className="font-mono text-[10px] text-muted-foreground/60">
+                Page {genProgress.page}/{genProgress.total}
+              </span>
+            )}
+          </div>
+          {currentCard && (
+            <div
+              onClick={() => setIsFlipped(!isFlipped)}
+              className="group relative min-h-[220px] sm:min-h-[240px] px-8 py-10 rounded-2xl bg-neutral-50/70 dark:bg-neutral-800/30 hover:bg-neutral-100/60 dark:hover:bg-neutral-800/50 transition-all cursor-pointer flex flex-col justify-between items-center text-center select-none"
+            >
+              <span className="uppercase tracking-widest font-mono text-[9px] text-muted-foreground/60">
+                {currentCard.cardType} • rep {currentCard.reps || 0}
+              </span>
+              <div className="my-auto py-2 max-w-lg">
+                {!isFlipped ? (
+                  <div className="space-y-2">
+                    <h3 className="text-lg sm:text-xl font-serif font-normal text-foreground leading-snug tracking-tight text-wrap balance">
+                      {currentCard.front}
+                    </h3>
+                    <p className="text-[11px] font-mono text-muted-foreground/50 pt-2">
+                      Click or Space to flip
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 animate-in fade-in duration-150">
+                    <p className="text-base sm:text-lg font-sans font-normal text-foreground leading-relaxed text-wrap pretty">
+                      {currentCard.back}
+                    </p>
+                    {currentCard.sourcePassage && (
+                      <blockquote className="text-xs text-muted-foreground/70 italic border-l border-indigo-400/40 pl-3 text-left max-w-md mx-auto line-clamp-2">
+                        "{currentCard.sourcePassage}"
+                      </blockquote>
+                    )}
+                  </div>
+                )}
+              </div>
+              <span className="text-[10px] font-mono text-muted-foreground/40">
+                Interval: {currentCard.intervalDays || 1}d
+              </span>
+            </div>
+          )}
         </div>
       ) : isSessionFinished ? (
         <div className="py-10 space-y-5 text-center max-w-md mx-auto">
