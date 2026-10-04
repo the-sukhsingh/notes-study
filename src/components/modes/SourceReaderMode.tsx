@@ -70,23 +70,34 @@ export function SourceReaderMode({
 
   // Floating Contextual Toolbar for Selected Text
   useEffect(() => {
+    const clearSelectionTooltip = () => {
+      setSelectedText('');
+      setSelectionCoords(null);
+    };
+
+    const handleSelectionChange = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+        clearSelectionTooltip();
+      }
+    };
+
     const handleSelection = () => {
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed || !articleRef.current) {
-        setSelectedText('');
-        setSelectionCoords(null);
+        clearSelectionTooltip();
         return;
       }
 
       const text = selection.toString().trim();
       if (text.length < 3) {
-        setSelectedText('');
-        setSelectionCoords(null);
+        clearSelectionTooltip();
         return;
       }
 
       // Check if selection is inside articleRef
       if (!articleRef.current.contains(selection.anchorNode)) {
+        clearSelectionTooltip();
         return;
       }
 
@@ -99,12 +110,23 @@ export function SourceReaderMode({
       });
     };
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        clearSelectionTooltip();
+        window.getSelection()?.removeAllRanges();
+      }
+    };
+
+    window.document.addEventListener('selectionchange', handleSelectionChange);
     window.document.addEventListener('mouseup', handleSelection);
     window.document.addEventListener('keyup', handleSelection);
+    window.document.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      window.document.removeEventListener('selectionchange', handleSelectionChange);
       window.document.removeEventListener('mouseup', handleSelection);
       window.document.removeEventListener('keyup', handleSelection);
+      window.document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -221,6 +243,7 @@ export function SourceReaderMode({
       {/* Floating Selection Tooltip */}
       {selectedText && selectionCoords && (
         <div
+          onMouseDown={(e) => e.stopPropagation()}
           style={{
             position: 'fixed',
             left: `${selectionCoords.x}px`,
