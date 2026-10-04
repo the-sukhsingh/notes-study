@@ -4,14 +4,13 @@ import React, { useState } from 'react';
 import { 
   Upload, 
   FileText, 
-  Sparkles, 
-  Trash2, 
   ArrowRight, 
   CheckCircle2, 
   AlertTriangle, 
-  HardDrive,
+  Trash2,
   FileCode,
-  Layers,
+  Sparkles,
+  Search,
   BookOpen
 } from 'lucide-react';
 import { DocumentSource } from '@/lib/types';
@@ -46,24 +45,25 @@ export function LibraryView({
   const [pastedTitle, setPastedTitle] = useState('');
   const [pastedText, setPastedText] = useState('');
   const [dragActive, setDragActive] = useState(false);
+  const [searchFilter, setSearchFilter] = useState('');
 
   const handleFileUpload = async (file: File) => {
     try {
       setIsProcessing(true);
-      setProcessingStatus(`Reading "${file.name}" locally on device...`);
+      setProcessingStatus(`Reading "${file.name}" on device...`);
 
       let extractionResult;
       const isPdf = file.name.toLowerCase().endsWith('.pdf');
 
       if (isPdf) {
-        setProcessingStatus('Extracting selectable text from PDF...');
+        setProcessingStatus('Extracting text and preserving page numbers...');
         extractionResult = await extractFromPdfFile(file);
       } else {
-        setProcessingStatus('Parsing document sections...');
+        setProcessingStatus('Parsing document content...');
         extractionResult = await extractFromTextFile(file);
       }
 
-      setProcessingStatus('Segmenting concepts and identifying topics...');
+      setProcessingStatus('Structuring topics and outline...');
       const cleanTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
       
       const newDoc = createDocumentFromPages(
@@ -120,253 +120,199 @@ export function LibraryView({
     }
   };
 
+  const filteredDocs = documents.filter(d => 
+    d.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
+    d.fileName.toLowerCase().includes(searchFilter.toLowerCase())
+  );
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-10">
-      {/* Title & Introduction */}
-      <div className="space-y-2 text-center sm:text-left">
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
-          Study From My Notes
+    <div className="max-w-4xl mx-auto px-6 py-12 space-y-16">
+      {/* Editorial Header */}
+      <div className="space-y-3">
+        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
+          Study Library
         </h1>
-        <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-          Transform your own PDFs, lecture handouts, and revision sheets into an interactive revision experience. 100% on-device AI for honest recall, practice quizzes, and explanations.
+        <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
+          Transform your own course material into an interactive active-recall revision session. 100% on-device AI. No external tracking, no cloud telemetry.
         </p>
       </div>
 
-      {/* Main Upload Dropzone & Quick Paste */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Upload Box */}
-        <div
-          onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-          onDragLeave={() => setDragActive(false)}
-          onDrop={handleDrop}
-          className={`md:col-span-2 relative p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center transition-all ${
-            dragActive 
-              ? 'border-foreground bg-neutral-50 dark:bg-neutral-900 scale-[0.99]' 
-              : 'border-border bg-neutral-50/40 dark:bg-neutral-900/40 hover:border-neutral-400 dark:hover:border-neutral-600'
-          }`}
-        >
-          {isProcessing ? (
-            <div className="py-6 flex flex-col items-center gap-3">
-              <div className="w-8 h-8 rounded-full border-2 border-foreground border-t-transparent animate-spin" />
-              <p className="text-sm font-medium text-foreground">{processingStatus}</p>
-              <p className="text-xs text-muted-foreground">Running locally on your device...</p>
-            </div>
-          ) : (
-            <>
-              <div className="p-3 rounded-2xl bg-background border border-border shadow-xs text-foreground mb-3">
-                <Upload className="w-6 h-6 text-neutral-700 dark:text-neutral-300" />
-              </div>
-              <h2 className="text-base font-semibold text-foreground">Import Study Material</h2>
-              <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                Drag and drop your PDF or notes here, or browse files on your computer.
+      {/* Sleek Minimal Dropzone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={handleDrop}
+        className={`relative py-12 px-8 rounded-3xl transition-all flex flex-col items-center justify-center text-center ${
+          dragActive
+            ? 'bg-neutral-100/90 dark:bg-neutral-800/80 scale-[0.99]'
+            : 'bg-neutral-50/70 dark:bg-neutral-900/50 hover:bg-neutral-100/60 dark:hover:bg-neutral-800/40'
+        }`}
+      >
+        {isProcessing ? (
+          <div className="py-4 flex flex-col items-center gap-3">
+            <div className="w-5 h-5 rounded-full border-2 border-foreground border-t-transparent animate-spin" />
+            <p className="text-xs font-medium text-foreground">{processingStatus}</p>
+          </div>
+        ) : (
+          <div className="space-y-4 max-w-md">
+            <div className="space-y-1">
+              <h2 className="text-sm font-medium text-foreground">
+                Drop your notes or textbook here
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                PDFs, text files, or markdown notes are extracted locally
               </p>
-
-              <div className="flex items-center gap-3 mt-4">
-                <label className="px-4 py-2 bg-foreground text-background rounded-xl text-xs font-medium hover:opacity-90 transition-opacity cursor-pointer active-press">
-                  Browse PDF or Text File
-                  <input
-                    type="file"
-                    accept=".pdf,.txt,.md"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files?.[0]) handleFileUpload(e.target.files[0]);
-                    }}
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowPasteModal(true)}
-                  className="px-4 py-2 border border-border bg-background hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl text-xs font-medium text-foreground transition-colors active-press"
-                >
-                  Paste Notes Text
-                </button>
-              </div>
-
-              <div className="mt-4 flex items-center gap-2 text-[11px] text-muted-foreground">
-                <HardDrive className="w-3.5 h-3.5" />
-                <span>Files are processed locally. No uploads to cloud servers.</span>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Quick-Start Guide Card */}
-        <div className="p-6 border border-border rounded-2xl bg-background flex flex-col justify-between space-y-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-              The Learning Journey
             </div>
-            <h2 className="text-sm font-semibold text-foreground">How it helps you learn:</h2>
-            <ul className="mt-3 space-y-2.5 text-xs text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <span className="font-mono text-foreground font-semibold">1.</span>
-                <span>Extracts your topics and preserves original page references.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="font-mono text-foreground font-semibold">2.</span>
-                <span>Generates active recall flashcards & assessment quizzes.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="font-mono text-foreground font-semibold">3.</span>
-                <span>Answers questions with verbatim citations from your notes.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="font-mono text-foreground font-semibold">4.</span>
-                <span>Tracks missed concepts for targeted revision.</span>
-              </li>
-            </ul>
-          </div>
 
-          <div className="pt-3 border-t border-border/80 text-[11px] text-muted-foreground">
-            Scanned or handwritten pages may require clear typography for best OCR results.
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <label className="px-4 py-2 bg-foreground text-background rounded-full text-xs font-medium hover:opacity-85 transition-opacity cursor-pointer active-press">
+                Choose Document
+                <input
+                  type="file"
+                  accept=".pdf,.txt,.md"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) handleFileUpload(e.target.files[0]);
+                  }}
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setShowPasteModal(true)}
+                className="px-4 py-2 rounded-full text-xs font-medium text-foreground hover:bg-neutral-200/50 dark:hover:bg-neutral-800/80 transition-colors active-press"
+              >
+                Paste Text
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Preloaded Sample Study Notes */}
-      <div className="space-y-3">
+      {/* Pre-Loaded Sample Notes */}
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">
-            Or try pre-loaded sample notes
-          </h2>
-          <span className="text-xs text-muted-foreground">Ready to test immediately</span>
+          <span className="text-xs font-medium tracking-wide uppercase text-muted-foreground/80">
+            Sample Study Sources
+          </span>
+          <span className="text-[11px] text-muted-foreground">Ready for instant practice</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="space-y-1">
           {SAMPLE_DOCUMENTS.map((sample) => (
             <div
               key={sample.id}
-              className="p-4 rounded-xl border border-border bg-neutral-50/50 dark:bg-neutral-900/50 hover:border-neutral-400 dark:hover:border-neutral-600 transition-all flex flex-col justify-between"
+              onClick={() => {
+                const existing = documents.find(d => d.id === sample.id);
+                if (!existing) onSaveDocument(sample);
+                onSelectDocument(sample.id);
+              }}
+              className="py-3 px-4 -mx-4 rounded-2xl hover:bg-neutral-100/70 dark:hover:bg-neutral-800/60 transition-colors cursor-pointer group flex items-center justify-between gap-4"
             >
-              <div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                  <span className="px-2 py-0.5 rounded-md bg-neutral-200/70 dark:bg-neutral-800 text-[10px] font-medium text-foreground">
-                    {sample.pageCount} Pages • {sample.wordCount} Words
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium text-foreground group-hover:underline truncate">
+                    {sample.title}
+                  </h3>
+                  <span className="text-[11px] text-muted-foreground shrink-0 font-mono">
+                    {sample.pageCount} pages
                   </span>
                 </div>
-                <h3 className="text-xs font-semibold text-foreground line-clamp-1">
-                  {sample.title}
-                </h3>
-                <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                   {sample.summary}
                 </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Check if already in documents, if not add it
-                    const existing = documents.find(d => d.id === sample.id);
-                    if (!existing) onSaveDocument(sample);
-                    onSelectDocument(sample.id);
-                  }}
-                  className="text-xs font-medium text-foreground hover:underline inline-flex items-center gap-1 active-press"
-                >
-                  Open Study Space
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              </div>
+              <span className="text-xs font-medium text-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
+                Start Studying <ArrowRight className="w-3 h-3" />
+              </span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Your Study Library */}
-      <div className="space-y-4 pt-4 border-t border-border">
-        <div className="flex items-center justify-between">
+      {/* Existing Notes Library */}
+      <div className="space-y-4 pt-4">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold text-foreground">Your Notes Library</h2>
+            <h2 className="text-base font-semibold text-foreground">Your Documents</h2>
             <p className="text-xs text-muted-foreground">
-              {documents.length} document{documents.length === 1 ? '' : 's'} available on this computer
+              {documents.length} document{documents.length === 1 ? '' : 's'} saved on this device
             </p>
           </div>
+
+          {documents.length > 3 && (
+            <div className="relative max-w-xs">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Filter notes..."
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                className="pl-8 pr-3 py-1 text-xs bg-neutral-100/50 dark:bg-neutral-800/50 rounded-full text-foreground focus:outline-none"
+              />
+            </div>
+          )}
         </div>
 
-        {documents.length === 0 ? (
-          <div className="p-12 text-center border border-dashed border-border rounded-2xl bg-neutral-50/20 dark:bg-neutral-900/20">
-            <BookOpen className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-            <p className="text-xs text-muted-foreground">No documents in your library yet. Import a PDF above to begin.</p>
+        {filteredDocs.length === 0 ? (
+          <div className="py-12 text-center text-xs text-muted-foreground">
+            No notes found. Upload a file above or pick one of the sample courses.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {documents.map((doc) => (
+          <div className="divide-y divide-neutral-100 dark:divide-neutral-800/60">
+            {filteredDocs.map((doc) => (
               <div
                 key={doc.id}
-                className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
-                  activeDocId === doc.id
-                    ? 'border-foreground bg-neutral-50/80 dark:bg-neutral-900/80 ring-1 ring-foreground/20'
-                    : 'border-border bg-background hover:border-neutral-400 dark:hover:border-neutral-600'
-                }`}
+                className="py-4 px-3 -mx-3 rounded-2xl hover:bg-neutral-100/50 dark:hover:bg-neutral-800/40 transition-colors flex items-center justify-between gap-4 group"
               >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-foreground">
-                      <FileText className="w-4 h-4" />
+                <div 
+                  onClick={() => onSelectDocument(doc.id)}
+                  className="min-w-0 flex-1 cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground group-hover:underline truncate">
+                      {doc.title}
                     </span>
-                    <div className="flex items-center gap-1">
-                      {doc.processingQuality.status === 'clean' ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Clean
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-medium flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" /> Warnings
-                        </span>
-                      )}
-                    </div>
+                    {doc.processingQuality.status === 'clean' ? (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title="Clean extraction" />
+                    ) : (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" title="Warnings detected" />
+                    )}
                   </div>
-
-                  <h3 className="text-sm font-semibold text-foreground line-clamp-1">
-                    {doc.title}
-                  </h3>
-                  <p className="text-[11px] font-mono text-muted-foreground truncate mt-0.5">
-                    {doc.fileName}
-                  </p>
-
-                  <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                     <span>{doc.pageCount} page{doc.pageCount === 1 ? '' : 's'}</span>
                     <span>•</span>
                     <span>{doc.wordCount} words</span>
                     <span>•</span>
                     <span>{doc.topics.length} topics</span>
                   </div>
-
-                  <p className="text-xs text-muted-foreground/80 mt-2 line-clamp-2 leading-relaxed">
-                    {doc.summary}
-                  </p>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-border flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onSelectDocument(doc.id)}
-                      className="px-3 py-1.5 bg-foreground text-background font-medium rounded-lg hover:opacity-90 transition-opacity active-press"
-                    >
-                      Study
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onInspectDocument(doc)}
-                      className="px-2.5 py-1.5 border border-border hover:bg-neutral-100 dark:hover:bg-neutral-800 text-foreground rounded-lg transition-colors"
-                    >
-                      Inspect
-                    </button>
-                  </div>
-
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onSelectDocument(doc.id)}
+                    className="px-3 py-1.5 text-xs font-medium bg-foreground text-background rounded-full hover:opacity-85 transition-opacity active-press"
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onInspectDocument(doc)}
+                    className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors active-press"
+                  >
+                    Inspect
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
-                      if (confirm(`Remove "${doc.title}" from your library?`)) {
-                        onDeleteDocument(doc.id);
-                      }
+                      if (confirm(`Remove "${doc.title}"?`)) onDeleteDocument(doc.id);
                     }}
-                    className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                    className="p-1.5 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors"
                     title="Delete document"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -375,64 +321,55 @@ export function LibraryView({
         )}
       </div>
 
-      {/* Paste Notes Modal */}
+      {/* Paste Modal */}
       {showPasteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <form 
             onSubmit={handlePasteSubmit}
-            className="w-full max-w-xl bg-background border border-border rounded-2xl shadow-xl overflow-hidden flex flex-col"
+            className="w-full max-w-xl bg-background rounded-3xl p-6 space-y-5 animate-in fade-in duration-100 ring-1 ring-black/5 dark:ring-white/10"
           >
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">Paste Study Notes</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-foreground">Paste Study Notes</h2>
               <button 
                 type="button" 
                 onClick={() => setShowPasteModal(false)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-xs text-muted-foreground hover:text-foreground"
               >
-                ✕
+                Close
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Document Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Molecular Biology Exam Review"
-                  value={pastedTitle}
-                  onChange={(e) => setPastedTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
-                />
-              </div>
+            <div className="space-y-4">
+              <input
+                type="text"
+                required
+                placeholder="Title (e.g. Molecular Biology Review)"
+                value={pastedTitle}
+                onChange={(e) => setPastedTitle(e.target.value)}
+                className="w-full px-3 py-2 text-xs bg-neutral-50 dark:bg-neutral-900 rounded-xl text-foreground focus:outline-none"
+              />
 
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-foreground">Notes Content</label>
-                  <span className="text-[11px] text-muted-foreground">Separate pages with [Page X] or ---</span>
-                </div>
-                <textarea
-                  required
-                  rows={8}
-                  placeholder="Paste your lecture notes, textbook passages, or revision bullets here..."
-                  value={pastedText}
-                  onChange={(e) => setPastedText(e.target.value)}
-                  className="w-full p-3 text-xs font-mono bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-foreground resize-none leading-relaxed"
-                />
-              </div>
+              <textarea
+                required
+                rows={8}
+                placeholder="Paste your study notes or textbook extract here..."
+                value={pastedText}
+                onChange={(e) => setPastedText(e.target.value)}
+                className="w-full p-3 text-xs font-mono bg-neutral-50 dark:bg-neutral-900 rounded-xl text-foreground focus:outline-none resize-none leading-relaxed"
+              />
             </div>
 
-            <div className="px-6 py-3 border-t border-border bg-neutral-50 dark:bg-neutral-900 flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setShowPasteModal(false)}
-                className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                className="px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-1.5 text-xs font-medium bg-foreground text-background rounded-lg hover:opacity-90 active-press"
+                className="px-4 py-2 text-xs font-medium bg-foreground text-background rounded-full hover:opacity-85 active-press"
               >
                 Process Notes
               </button>

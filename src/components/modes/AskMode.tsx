@@ -2,15 +2,11 @@
 
 import React, { useState } from 'react';
 import { 
-  Search, 
   Send, 
   BookOpen, 
-  Sparkles, 
   AlertCircle, 
   CheckCircle2, 
-  HelpCircle,
-  ExternalLink,
-  RefreshCw
+  RefreshCw 
 } from 'lucide-react';
 import { DocumentSource, AskAnswer, AISettings } from '@/lib/types';
 import { askNotesQuestion } from '@/lib/aiEngine';
@@ -30,12 +26,10 @@ export function AskMode({
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<AskAnswer | null>(null);
 
-  // Suggested prompt chips derived from topics and key terms
   const suggestedQueries = [
     `What are the core principles of ${document.topics[0]?.title || 'this topic'}?`,
     `How does the mechanism work on Page 1?`,
-    `What conditions or formulas are specified in the notes?`,
-    `Why is this concept important according to the document?`
+    `What formulas or conditions are specified in the notes?`
   ];
 
   const handleAsk = async (queryToAsk?: string) => {
@@ -54,142 +48,120 @@ export function AskMode({
   };
 
   return (
-    <div className="flex flex-col space-y-6">
-      {/* Question Input Card */}
-      <div className="p-5 rounded-2xl bg-background border border-border space-y-4 shadow-xs">
+    <div className="space-y-12">
+      {/* Question Form */}
+      <div className="space-y-4">
         <div>
-          <h2 className="text-sm font-semibold text-foreground">Ask My Notes</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Ask any question. Answers are strictly grounded in your uploaded notes with verbatim citations.
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            Ask My Notes
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Grounded Q&A. Answers cite verbatim passages with exact page numbers.
           </p>
         </div>
 
         <form 
           onSubmit={(e) => { e.preventDefault(); handleAsk(); }}
-          className="relative flex items-center gap-2"
+          className="flex items-center gap-2"
         >
           <input
             type="text"
-            placeholder="e.g. What is the difference between BFS and DFS? or What is the formula for PED?"
+            placeholder="Ask a question about your notes..."
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            className="flex-1 px-4 py-2.5 text-xs bg-neutral-50/50 dark:bg-neutral-900/50 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-foreground placeholder:text-muted-foreground"
+            className="flex-1 px-4 py-2.5 text-xs bg-neutral-100/60 dark:bg-neutral-800/50 rounded-full text-foreground focus:outline-none placeholder:text-muted-foreground/60"
           />
           <button
             type="submit"
             disabled={loading || !question.trim()}
-            className="px-4 py-2.5 bg-foreground text-background text-xs font-medium rounded-xl hover:opacity-90 disabled:opacity-40 transition-opacity flex items-center gap-1.5 active-press"
+            className="px-5 py-2.5 bg-foreground text-background text-xs font-medium rounded-full hover:opacity-85 disabled:opacity-40 transition-opacity flex items-center gap-1.5 active-press shrink-0"
           >
             {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-            Ask Notes
+            Ask
           </button>
         </form>
 
         {/* Suggested Queries */}
-        <div className="space-y-1.5 pt-1">
-          <span className="text-[11px] font-medium text-muted-foreground">Try asking:</span>
-          <div className="flex flex-wrap gap-1.5">
-            {suggestedQueries.map((sq, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  setQuestion(sq);
-                  handleAsk(sq);
-                }}
-                className="px-2.5 py-1 rounded-lg text-[11px] border border-border/80 bg-neutral-50 dark:bg-neutral-900 text-muted-foreground hover:text-foreground hover:border-neutral-400 transition-colors text-left"
-              >
-                {sq}
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-[11px] text-muted-foreground/70">Suggestions:</span>
+          {suggestedQueries.map((sq, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                setQuestion(sq);
+                handleAsk(sq);
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline decoration-neutral-300 dark:decoration-neutral-700 underline-offset-4"
+            >
+              {sq}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Answer Output */}
       {answer ? (
-        <div className="p-6 sm:p-8 rounded-2xl bg-background border border-border space-y-6 shadow-xs select-text">
+        <article className="max-w-[70ch] space-y-8 select-text pt-2">
           {/* Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-foreground">Answer to:</span>
-              <span className="text-xs text-muted-foreground italic">"{answer.question}"</span>
-            </div>
+          <div className="flex items-baseline justify-between gap-4 pb-2 border-b border-neutral-100 dark:border-neutral-800/60">
+            <h3 className="text-lg font-semibold tracking-tight text-foreground">
+              {answer.question}
+            </h3>
 
-            <div className="flex items-center gap-1.5">
+            <div className="text-[11px] font-mono text-muted-foreground shrink-0">
               {answer.confidence === 'high' ? (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> High Confidence
-                </span>
-              ) : answer.confidence === 'medium' ? (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
-                  Medium Match
-                </span>
+                <span className="text-emerald-600 dark:text-emerald-400">High match</span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" /> Limited Evidence
-                </span>
+                <span>Evidence limited</span>
               )}
             </div>
           </div>
 
           {/* Answer Text */}
-          <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans text-foreground">
+          <div className="text-[16px] leading-[1.75] whitespace-pre-wrap font-sans text-foreground/90">
             {answer.answer}
           </div>
 
-          {/* Supporting Evidence References */}
+          {/* References */}
           {answer.references && answer.references.length > 0 && (
-            <div className="space-y-3 pt-3 border-t border-border">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
-                  Supporting Source References ({answer.references.length})
-                </span>
-                <span className="text-[11px] text-muted-foreground">Click to jump into document</span>
-              </div>
+            <div className="space-y-3 pt-2">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                Supporting References ({answer.references.length})
+              </span>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {answer.references.map((ref, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-xl border border-border/70 bg-neutral-50/50 dark:bg-neutral-900/50 hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors flex items-start justify-between gap-4"
+                    className="pl-4 border-l-2 border-neutral-200 dark:border-neutral-800 space-y-1 group"
                   >
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="font-semibold text-foreground">Page {ref.pageNumber}</span>
-                        <span className="text-[11px] text-muted-foreground font-mono">
-                          Relevance Match: {(ref.score * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground font-mono leading-relaxed italic line-clamp-2">
-                        "{ref.passage}"
-                      </p>
+                    <div className="flex items-center justify-between text-xs">
+                      <button
+                        type="button"
+                        onClick={() => onJumpToPage(ref.pageNumber)}
+                        className="font-mono text-foreground hover:underline flex items-center gap-1"
+                      >
+                        <BookOpen className="w-3 h-3" />
+                        Page {ref.pageNumber}
+                      </button>
+                      <span className="text-[11px] font-mono text-muted-foreground">
+                        {(ref.score * 100).toFixed(0)}% match
+                      </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => onJumpToPage(ref.pageNumber)}
-                      className="px-2.5 py-1.5 rounded-lg border border-border bg-background hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-medium text-foreground transition-colors shrink-0 flex items-center gap-1 active-press"
-                    >
-                      <BookOpen className="w-3 h-3" />
-                      View Page {ref.pageNumber}
-                    </button>
+                    <p className="text-xs text-muted-foreground font-mono leading-relaxed italic line-clamp-2">
+                      "{ref.passage}"
+                    </p>
                   </div>
                 ))}
               </div>
             </div>
           )}
-
-          {!answer.groundedInNotes && (
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>Honest AI notice: To prevent hallucinations, the app will not guess answers that cannot be supported by your study material.</span>
-            </div>
-          )}
-        </div>
+        </article>
       ) : (
-        <div className="p-12 text-center border border-dashed border-border rounded-2xl bg-neutral-50/30 dark:bg-neutral-900/30 text-xs text-muted-foreground">
-          Type a question above or click one of the suggestions to query your notes.
+        <div className="py-16 text-center text-xs text-muted-foreground">
+          Type a question above to retrieve answers grounded in your material.
         </div>
       )}
     </div>

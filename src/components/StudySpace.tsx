@@ -9,12 +9,7 @@ import {
   CheckSquare, 
   RotateCcw, 
   FileSearch, 
-  FileText, 
-  ChevronRight,
-  ShieldCheck,
-  AlertTriangle,
-  Menu,
-  X
+  FileText
 } from 'lucide-react';
 import { DocumentSource, AISettings } from '@/lib/types';
 import { SourceReaderMode } from './modes/SourceReaderMode';
@@ -41,10 +36,8 @@ export function StudySpace({
 }: StudySpaceProps) {
   const [activeMode, setActiveMode] = useState<StudyMode>('source');
   const [activePage, setActivePage] = useState<number>(1);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [explainInitialConcept, setExplainInitialConcept] = useState<string | undefined>(undefined);
 
-  // Jump to specific page and switch to source reader
   const handleJumpToPage = (pageNumber: number) => {
     setActivePage(pageNumber);
     setActiveMode('source');
@@ -56,7 +49,7 @@ export function StudySpace({
   };
 
   const modes: { id: StudyMode; label: string; icon: any }[] = [
-    { id: 'source', label: 'Source Notes', icon: FileText },
+    { id: 'source', label: 'Source', icon: FileText },
     { id: 'explain', label: 'Explain', icon: Sparkles },
     { id: 'ask', label: 'Ask Notes', icon: HelpCircle },
     { id: 'flashcards', label: 'Flashcards', icon: Layers },
@@ -65,36 +58,49 @@ export function StudySpace({
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Top Header / Mode Switcher */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-border/60">
-        <div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-            <span className="font-mono">{document.fileName}</span>
-            <span>•</span>
-            <span>{document.pageCount} pages</span>
-            <span>•</span>
-            <span>{document.wordCount} words</span>
+    <div className="max-w-6xl mx-auto px-6 py-8 space-y-10">
+      {/* Top Header & Mode Navigation */}
+      <div className="space-y-4">
+        {/* Document Title & Meta */}
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
+              {document.title}
+            </h1>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+              <span>{document.fileName}</span>
+              <span>•</span>
+              <span>{document.pageCount} pages</span>
+              <span>•</span>
+              <span>{document.wordCount} words</span>
+            </div>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-            {document.title}
-          </h1>
+
+          {/* Quick inspect text action */}
+          <button
+            type="button"
+            onClick={onInspectDocument}
+            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors self-start sm:self-auto active-press"
+          >
+            <FileSearch className="w-3.5 h-3.5" />
+            Inspect extracted text
+          </button>
         </div>
 
-        {/* Mode Selector Tabs (Apple segmented control style) */}
-        <div className="flex items-center p-1 bg-neutral-100 dark:bg-neutral-900 border border-border/70 rounded-2xl overflow-x-auto max-w-full">
+        {/* Minimal Mode Tab Bar */}
+        <div className="flex items-center gap-1 overflow-x-auto py-1 border-b border-neutral-100 dark:border-neutral-800/80 -mx-1 px-1">
           {modes.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
               onClick={() => setActiveMode(id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 active-press ${
+              className={`px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 active-press ${
                 activeMode === id
-                  ? 'bg-background text-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-neutral-100 dark:bg-neutral-800 text-foreground font-semibold'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-neutral-100/50 dark:hover:bg-neutral-800/40'
               }`}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-3.5 h-3.5 opacity-80" />
               <span>{label}</span>
             </button>
           ))}
@@ -102,69 +108,41 @@ export function StudySpace({
       </div>
 
       {/* Main Workspace Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-        {/* Left Column: Outline & Document Overview */}
-        <div className="lg:col-span-1 space-y-4">
-          {/* Quality Banner & Inspector Button */}
-          <div className="p-4 rounded-2xl bg-neutral-50/60 dark:bg-neutral-900/60 border border-border space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-foreground">Extraction Status</span>
-              {document.processingQuality.status === 'clean' ? (
-                <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> 100% Clean
-                </span>
-              ) : (
-                <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5" /> Inspection Needed
-                </span>
-              )}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        {/* Left Column: Sleek Table of Contents Outline */}
+        <aside className="lg:col-span-3 space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
+              <span>Outline</span>
+              <span className="font-mono text-[10px]">{document.topics.length}</span>
             </div>
 
-            <button
-              type="button"
-              onClick={onInspectDocument}
-              className="w-full py-1.5 px-3 rounded-xl border border-border bg-background hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-medium text-foreground transition-colors flex items-center justify-center gap-1.5 active-press"
-            >
-              <FileSearch className="w-3.5 h-3.5" />
-              Inspect & Edit Extracted Text
-            </button>
-          </div>
-
-          {/* Topic Outline Navigator */}
-          <div className="p-4 rounded-2xl bg-background border border-border space-y-3">
-            <div className="flex items-center justify-between text-xs font-semibold text-foreground">
-              <span>Topic Outline</span>
-              <span className="text-muted-foreground text-[11px] font-mono">
-                {document.topics.length} topics
-              </span>
-            </div>
-
-            <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
-              {document.topics.map((t, idx) => (
-                <div
+            <nav className="space-y-0.5">
+              {document.topics.map((t) => (
+                <button
                   key={t.id}
                   onClick={() => handleJumpToPage(t.pageReferences[0] || 1)}
-                  className="p-2.5 rounded-xl border border-transparent hover:border-border hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer transition-colors text-xs group"
+                  className="w-full text-left py-2 px-2.5 -mx-2.5 rounded-xl hover:bg-neutral-100/60 dark:hover:bg-neutral-800/50 transition-colors group block text-xs"
                 >
-                  <div className="flex items-start justify-between gap-1">
-                    <span className="font-medium text-foreground group-hover:underline line-clamp-1">
+                  <div className="flex items-baseline justify-between gap-1">
+                    <span className="font-medium text-foreground group-hover:underline truncate">
                       {t.title}
                     </span>
-                    <span className="text-[10px] font-mono text-muted-foreground shrink-0">
-                      P. {t.pageReferences.join(', ')}
+                    <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0">
+                      p. {t.pageReferences.join(', ')}
                     </span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5 leading-relaxed">
+                  <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
                     {t.summary}
                   </p>
-                </div>
+                </button>
               ))}
-            </div>
+            </nav>
           </div>
-        </div>
+        </aside>
 
-        {/* Right Main Column: Active Study Mode */}
-        <div className="lg:col-span-3">
+        {/* Right Column: Active Study Canvas */}
+        <main className="lg:col-span-9 min-h-[500px]">
           {activeMode === 'source' && (
             <SourceReaderMode
               document={document}
@@ -215,7 +193,7 @@ export function StudySpace({
               onJumpToPage={handleJumpToPage}
             />
           )}
-        </div>
+        </main>
       </div>
     </div>
   );
