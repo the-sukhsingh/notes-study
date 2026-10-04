@@ -11,9 +11,9 @@ export async function extractFromPdfFile(file: File): Promise<{ pages: PageConte
     // Dynamic import to avoid SSR issues
     const pdfjs = await import('pdfjs-dist');
     
-    // Set worker source to CDN matching pdfjs-dist version
+    // Set worker source to local public worker for fast offline/local-first parsing
     if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
-      pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version || '4.10.38'}/pdf.worker.min.mjs`;
+      pdfjs.GlobalWorkerOptions.workerSrc = `${window.location.origin}/pdf.worker.min.mjs`;
     }
 
     const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
