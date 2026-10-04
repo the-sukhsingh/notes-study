@@ -80,15 +80,17 @@ export function Header({
             </span>
           </button>
 
-          <ColoredButton
-            color="neutral"
-            size="sm"
-            onClick={onOpenLibrary}
-            className="hidden sm:inline-flex"
-          >
-            <Library className="w-3.5 h-3.5" />
-            Library
-          </ColoredButton>
+          {activeDocument && (
+            <ColoredButton
+              color="neutral"
+              size="sm"
+              onClick={onOpenLibrary}
+              className="hidden sm:inline-flex"
+            >
+              <Library className="w-3.5 h-3.5" />
+              Library
+            </ColoredButton>
+          )}
 
           <button
             type="button"

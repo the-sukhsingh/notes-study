@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { LibraryView } from '@/components/LibraryView';
-import { StudySpace } from '@/components/StudySpace';
 import { ModelSettingsModal } from '@/components/ModelSettingsModal';
 import { InspectionModal } from '@/components/InspectionModal';
 import { DocumentSource, AISettings } from '@/lib/types';
@@ -17,48 +17,36 @@ import {
   saveAISettings
 } from '@/lib/storage';
 import { DEFAULT_AI_SETTINGS } from '@/lib/aiEngine';
-
 import { SAMPLE_DOCUMENTS } from '@/lib/sampleNotes';
 
 export default function Home() {
+  const router = useRouter();
   const [documents, setDocuments] = useState<DocumentSource[]>(SAMPLE_DOCUMENTS);
-  const [activeDocId, setActiveDocState] = useState<string | null>(SAMPLE_DOCUMENTS[0].id);
-  const [view, setView] = useState<'study' | 'library'>('study');
+  const [activeDocId, setActiveDocState] = useState<string | null>(null);
   const [settings, setSettings] = useState<AISettings>(DEFAULT_AI_SETTINGS);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isInspectOpen, setIsInspectOpen] = useState(false);
   const [inspectingDoc, setInspectingDoc] = useState<DocumentSource | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const docs = getDocuments();
     setDocuments(docs);
-
-    const activeId = getActiveDocId();
-    if (activeId && docs.some(d => d.id === activeId)) {
-      setActiveDocState(activeId);
-      setView('study');
-    } else if (docs.length > 0) {
-      setActiveDocState(docs[0].id);
-      setView('study');
-    } else {
-      setView('library');
-    }
-
+    setActiveDocState(getActiveDocId());
     setSettings(getAISettings());
   }, []);
 
   const handleSelectDocument = (docId: string) => {
     setActiveDocState(docId);
     setActiveDocId(docId);
-    setView('study');
+    router.push('/study');
   };
 
   const handleSaveDocument = (doc: DocumentSource) => {
     saveDocument(doc);
-    const updatedDocs = getDocuments();
-    setDocuments(updatedDocs);
-    setActiveDocState(doc.id);
-    setView('study');
+    setActiveDocId(doc.id);
+    router.push('/study');
   };
 
   const handleDeleteDocument = (docId: string) => {
@@ -66,12 +54,9 @@ export default function Home() {
     const updatedDocs = getDocuments();
     setDocuments(updatedDocs);
     if (activeDocId === docId) {
-      if (updatedDocs.length > 0) {
-        setActiveDocState(updatedDocs[0].id);
-      } else {
-        setActiveDocState(null);
-        setView('library');
-      }
+      const nextId = updatedDocs[0]?.id || null;
+      setActiveDocState(nextId);
+      if (nextId) setActiveDocId(nextId);
     }
   };
 
@@ -92,52 +77,40 @@ export default function Home() {
   const handleDataReset = () => {
     const freshDocs = getDocuments();
     setDocuments(freshDocs);
-    if (freshDocs.length > 0) {
-      setActiveDocState(freshDocs[0].id);
-    } else {
-      setActiveDocState(null);
-      setView('library');
-    }
+    const firstId = freshDocs[0]?.id || null;
+    setActiveDocState(firstId);
+    if (firstId) setActiveDocId(firstId);
   };
 
   const handleOpenInspect = (doc?: DocumentSource) => {
-    const targetDoc = doc || activeDocument;
-    if (targetDoc) {
-      setInspectingDoc(targetDoc);
+    if (doc) {
+      setInspectingDoc(doc);
       setIsInspectOpen(true);
     }
   };
-  const activeDocument = documents.find(d => d.id === activeDocId) || null;
+
+  if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
+    <div className="min-h-screen bg-background flex flex-col font-sans transition-colors selection:bg-neutral-200 dark:selection:bg-neutral-800">
       <Header
         documents={documents}
-        activeDocument={activeDocument}
+        activeDocument={null}
         onSelectDocument={handleSelectDocument}
-        onOpenLibrary={() => setView('library')}
+        onOpenLibrary={() => {}}
         onOpenSettings={() => setIsSettingsOpen(true)}
         settings={settings}
       />
 
       <main className="flex-1">
-        {view === 'library' || !activeDocument ? (
-          <LibraryView
-            documents={documents}
-            activeDocId={activeDocId}
-            onSelectDocument={handleSelectDocument}
-            onSaveDocument={handleSaveDocument}
-            onDeleteDocument={handleDeleteDocument}
-            onInspectDocument={handleOpenInspect}
-          />
-        ) : (
-          <StudySpace
-            document={activeDocument}
-            settings={settings}
-            onInspectDocument={() => handleOpenInspect(activeDocument)}
-            onUpdateDocument={handleUpdateDocument}
-          />
-        )}
+        <LibraryView
+          documents={documents}
+          activeDocId={activeDocId}
+          onSelectDocument={handleSelectDocument}
+          onSaveDocument={handleSaveDocument}
+          onDeleteDocument={handleDeleteDocument}
+          onInspectDocument={handleOpenInspect}
+        />
       </main>
 
       {/* Model & Privacy Settings Modal */}
