@@ -12,6 +12,7 @@ export interface FocusModalProps {
   onClose: () => void;
   title: string;
   subtitle?: string;
+  icon?: React.ReactNode;
   badge?: React.ReactNode;
   color?: CalmColorName | "random";
   headerActions?: React.ReactNode;
@@ -19,6 +20,8 @@ export interface FocusModalProps {
   footer?: React.ReactNode;
   maxWidth?: string;
   className?: string;
+  onSubmit?: (e: React.FormEvent) => void;
+  zIndex?: string;
 }
 
 export function FocusModal({
@@ -26,6 +29,7 @@ export function FocusModal({
   onClose,
   title,
   subtitle,
+  icon,
   badge,
   color = "indigo",
   headerActions,
@@ -33,6 +37,8 @@ export function FocusModal({
   footer,
   maxWidth = "max-w-3xl",
   className,
+  onSubmit,
+  zIndex = "z-50",
 }: FocusModalProps) {
   const [mounted, setMounted] = useState(false);
   const isBackdropClickRef = useRef(false);
@@ -81,7 +87,10 @@ export function FocusModal({
               onClose();
             }
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 backdrop-blur-md bg-background/60 dark:bg-background/70 select-none overflow-hidden"
+          className={cn(
+            "fixed inset-0 flex items-center justify-center p-3 sm:p-6 backdrop-blur-md bg-background/60 dark:bg-background/70 select-none overflow-hidden",
+            zIndex
+          )}
         >
           {/* Animated WebGL Calm Wave Shader in Background */}
           <motion.div
@@ -127,6 +136,7 @@ export function FocusModal({
                   </p>
                 )}
                 <div className="flex items-center gap-2">
+                  {icon && <span className="shrink-0">{icon}</span>}
                   <h2 className="font-sans text-base sm:text-lg font-semibold tracking-tight text-foreground truncate">
                     {title}
                   </h2>
@@ -148,16 +158,29 @@ export function FocusModal({
               </div>
             </div>
 
-            {/* Modal Body - Guaranteed Scrollbar-Free */}
-            <div className="flex-1 overflow-y-auto no-scrollbar px-6 sm:px-8 py-4">
-              {children}
-            </div>
-
-            {/* Minimal Footer (Optional) */}
-            {footer && (
-              <div className="px-6 sm:px-8 py-3 border-t border-neutral-100 dark:border-neutral-800/40 bg-neutral-50/30 dark:bg-neutral-950/20 shrink-0 flex items-center justify-between text-xs text-muted-foreground">
-                {footer}
-              </div>
+            {/* Modal Body & Footer */}
+            {onSubmit ? (
+              <form onSubmit={onSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 overflow-y-auto no-scrollbar px-6 sm:px-8 py-4">
+                  {children}
+                </div>
+                {footer && (
+                  <div className="px-6 sm:px-8 py-3.5 border-t border-neutral-100 dark:border-neutral-800/40 bg-neutral-50/30 dark:bg-neutral-950/20 shrink-0 flex items-center justify-between text-xs text-muted-foreground">
+                    {footer}
+                  </div>
+                )}
+              </form>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto no-scrollbar px-6 sm:px-8 py-4">
+                  {children}
+                </div>
+                {footer && (
+                  <div className="px-6 sm:px-8 py-3.5 border-t border-neutral-100 dark:border-neutral-800/40 bg-neutral-50/30 dark:bg-neutral-950/20 shrink-0 flex items-center justify-between text-xs text-muted-foreground">
+                    {footer}
+                  </div>
+                )}
+              </>
             )}
           </motion.div>
         </motion.div>

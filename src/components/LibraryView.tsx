@@ -27,6 +27,7 @@ import {
 import { SAMPLE_DOCUMENTS } from '@/lib/sampleNotes';
 import { getFlashcardsForDoc } from '@/lib/storage';
 import { ColoredButton } from './custom/colored-button';
+import { FocusModal } from './custom/FocusModal';
 
 interface LibraryViewProps {
   documents: DocumentSource[];
@@ -469,68 +470,66 @@ export function LibraryView({
         </div>
       </main>
 
-      {/* Paste Notes Modal */}
-      {showPasteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-xl bg-background rounded-2xl p-6 space-y-4 border border-border shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-foreground">
-                Paste Study Notes
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowPasteModal(false)}
-                className="text-muted-foreground hover:text-foreground text-xs"
-              >
-                Cancel
-              </button>
-            </div>
+      {/* Paste Notes Modal with Calm BG Shader */}
+      <FocusModal
+        isOpen={showPasteModal}
+        onClose={() => setShowPasteModal(false)}
+        title="Paste Study Notes"
+        subtitle="Turn lecture text, syllabi, or slides into interactive study sets"
+        icon={<BookOpen className="w-4 h-4 text-orange-500" />}
+        badge={
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-orange-100 text-orange-900 dark:bg-orange-950/80 dark:text-orange-300 font-medium">
+            New Source
+          </span>
+        }
+        color="orange"
+        maxWidth="max-w-xl"
+        onSubmit={handlePasteSubmit}
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <ColoredButton
+              color="neutral"
+              size="default"
+              onClick={() => setShowPasteModal(false)}
+            >
+              Cancel
+            </ColoredButton>
+            <ColoredButton
+              type="submit"
+              color="amber"
+              size="default"
+            >
+              Create Document & Structure
+            </ColoredButton>
+          </div>
+        }
+      >
+        <div className="space-y-4 text-xs">
+          <div>
+            <label className="block text-muted-foreground mb-1 font-medium">Document Title</label>
+            <input
+              type="text"
+              placeholder="e.g. Microeconomics Lecture 3: Market Failures"
+              value={pastedTitle}
+              onChange={(e) => setPastedTitle(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none focus:ring-1 focus:ring-orange-400 font-medium"
+              required
+            />
+          </div>
 
-            <form onSubmit={handlePasteSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-muted-foreground mb-1">Document Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Microeconomics Lecture 3: Market Failures"
-                  value={pastedTitle}
-                  onChange={(e) => setPastedTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground mb-1">Content (Raw Notes / Syllabus)</label>
-                <textarea
-                  rows={8}
-                  placeholder="Paste your course notes or lecture slides transcript here..."
-                  value={pastedText}
-                  onChange={(e) => setPastedText(e.target.value)}
-                  className="w-full p-3 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <ColoredButton
-                  color="neutral"
-                  size="default"
-                  onClick={() => setShowPasteModal(false)}
-                >
-                  Cancel
-                </ColoredButton>
-                <ColoredButton
-                  type="submit"
-                  color="amber"
-                  size="default"
-                >
-                  Create Document & Structure
-                </ColoredButton>
-              </div>
-            </form>
+          <div>
+            <label className="block text-muted-foreground mb-1 font-medium">Content (Raw Notes / Syllabus)</label>
+            <textarea
+              rows={8}
+              placeholder="Paste your course notes or lecture slides transcript here..."
+              value={pastedText}
+              onChange={(e) => setPastedText(e.target.value)}
+              className="w-full p-3.5 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none focus:ring-1 focus:ring-orange-400 font-mono text-xs leading-relaxed"
+              required
+            />
           </div>
         </div>
-      )}
+      </FocusModal>
     </div>
   );
 }

@@ -23,6 +23,7 @@ import {
 } from '@/lib/storage';
 import { ColoredButton } from '@/components/custom/colored-button';
 import { CustomSelect } from '@/components/custom/CustomSelect';
+import { FocusModal } from '@/components/custom/FocusModal';
 
 interface FlashcardsModeProps {
   document: DocumentSource;
@@ -416,87 +417,96 @@ export function FlashcardsMode({
         </div>
       )}
 
-      {/* Edit Card Modal */}
-      {editModalOpen && editingCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-lg bg-background rounded-2xl p-6 space-y-4 border border-border shadow-xl">
-            <h4 className="font-semibold text-base text-foreground">
-              {editingCard.front ? 'Edit Flashcard' : 'New Flashcard'}
-            </h4>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block text-muted-foreground mb-1">Front (Prompt / Question)</label>
-                <textarea
-                  rows={3}
-                  value={editingCard.front}
-                  onChange={(e) => setEditingCard({ ...editingCard, front: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none"
-                  placeholder="Enter the question or concept prompt..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground mb-1">Back (Answer / Explanation)</label>
-                <textarea
-                  rows={4}
-                  value={editingCard.back}
-                  onChange={(e) => setEditingCard({ ...editingCard, back: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none"
-                  placeholder="Enter the detailed answer..."
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground mb-1">Source Page Reference</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={document.pageCount}
-                    value={editingCard.sourcePage}
-                    onChange={(e) => setEditingCard({ ...editingCard, sourcePage: parseInt(e.target.value) || 1 })}
-                    className="w-full p-2 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-muted-foreground mb-1">Card Type</label>
-                  <CustomSelect
-                    value={editingCard.cardType}
-                    onChange={(val) => setEditingCard({ ...editingCard, cardType: val as any })}
-                    className="w-full"
-                    triggerClassName="w-full justify-between"
-                    options={[
-                      { value: 'concept', label: 'Concept' },
-                      { value: 'definition', label: 'Definition' },
-                      { value: 'fact', label: 'Key Fact' },
-                      { value: 'application', label: 'Application' }
-                    ]}
-                  />
-                </div>
-              </div>
+      {/* Edit Card Modal with Calm BG Shader */}
+      <FocusModal
+        isOpen={editModalOpen && Boolean(editingCard)}
+        onClose={() => setEditModalOpen(false)}
+        title={editingCard?.front ? 'Edit Flashcard' : 'New Flashcard'}
+        subtitle={`Source: ${document.title} • Page ${editingCard?.sourcePage || 1}`}
+        icon={<Sparkles className="w-4 h-4 text-indigo-500" />}
+        badge={
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-indigo-100 text-indigo-900 dark:bg-indigo-950/80 dark:text-indigo-300 font-medium">
+            Card Editor
+          </span>
+        }
+        color="indigo"
+        maxWidth="max-w-lg"
+        zIndex="z-[60]"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <ColoredButton
+              color="neutral"
+              size="sm"
+              onClick={() => setEditModalOpen(false)}
+            >
+              Cancel
+            </ColoredButton>
+            <ColoredButton
+              color="indigo"
+              size="sm"
+              onClick={() => editingCard && handleSaveCardModal(editingCard)}
+            >
+              Save Flashcard
+            </ColoredButton>
+          </div>
+        }
+      >
+        {editingCard && (
+          <div className="space-y-3.5 text-xs">
+            <div>
+              <label className="block text-muted-foreground mb-1 font-medium">Front (Prompt / Question)</label>
+              <textarea
+                rows={3}
+                value={editingCard.front}
+                onChange={(e) => setEditingCard({ ...editingCard, front: e.target.value })}
+                className="w-full p-2.5 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                placeholder="Enter the question or concept prompt..."
+              />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <ColoredButton
-                color="neutral"
-                size="sm"
-                onClick={() => setEditModalOpen(false)}
-              >
-                Cancel
-              </ColoredButton>
-              <ColoredButton
-                color="indigo"
-                size="sm"
-                onClick={() => handleSaveCardModal(editingCard)}
-              >
-                Save Flashcard
-              </ColoredButton>
+            <div>
+              <label className="block text-muted-foreground mb-1 font-medium">Back (Answer / Explanation)</label>
+              <textarea
+                rows={4}
+                value={editingCard.back}
+                onChange={(e) => setEditingCard({ ...editingCard, back: e.target.value })}
+                className="w-full p-2.5 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                placeholder="Enter the detailed answer..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-muted-foreground mb-1 font-medium">Source Page Reference</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={document.pageCount}
+                  value={editingCard.sourcePage}
+                  onChange={(e) => setEditingCard({ ...editingCard, sourcePage: parseInt(e.target.value) || 1 })}
+                  className="w-full p-2 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 text-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-muted-foreground mb-1 font-medium">Card Type</label>
+                <CustomSelect
+                  value={editingCard.cardType}
+                  onChange={(val) => setEditingCard({ ...editingCard, cardType: val as any })}
+                  className="w-full"
+                  triggerClassName="w-full justify-between"
+                  options={[
+                    { value: 'concept', label: 'Concept' },
+                    { value: 'definition', label: 'Definition' },
+                    { value: 'fact', label: 'Key Fact' },
+                    { value: 'application', label: 'Application' }
+                  ]}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </FocusModal>
     </div>
   );
 }

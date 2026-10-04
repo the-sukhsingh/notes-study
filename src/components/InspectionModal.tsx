@@ -2,16 +2,17 @@
 
 import React, { useState } from 'react';
 import { 
-  X, 
   ChevronLeft, 
   ChevronRight, 
   Check, 
   Edit3, 
-  Eye,
-  FileSearch
+  Eye, 
+  FileSearch,
+  CheckCircle2
 } from 'lucide-react';
 import { DocumentSource, PageContent } from '@/lib/types';
 import { ColoredButton } from './custom/colored-button';
+import { FocusModal } from './custom/FocusModal';
 
 interface InspectionModalProps {
   isOpen: boolean;
@@ -30,8 +31,6 @@ export function InspectionModal({
   const [isEditing, setIsEditing] = useState(false);
   const [editedPages, setEditedPages] = useState<PageContent[]>(document.pages);
   const [saveSuccess, setSaveSuccess] = useState(false);
-
-  if (!isOpen) return null;
 
   const currentPage = editedPages[currentPageIdx] || editedPages[0];
   const totalPages = editedPages.length;
@@ -63,55 +62,53 @@ export function InspectionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-100">
-      <div 
-        className="w-full max-w-3xl bg-background/95 dark:bg-neutral-900/95 backdrop-blur-2xl ring-1 ring-black/[0.05] dark:ring-white/[0.08] shadow-[0_24px_70px_-15px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_70px_-15px_rgba(0,0,0,0.7)] rounded-[28px] p-6 sm:p-7 space-y-6 max-h-[88vh] overflow-y-auto no-scrollbar text-foreground"
-        role="dialog"
-        aria-modal="true"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-neutral-200/60 dark:border-neutral-800/60">
-          <div>
-            <div className="flex items-center gap-2">
-              <FileSearch className="w-4 h-4 text-amber-500" />
-              <h2 className="text-base font-semibold text-foreground">Extracted Notes Inspection</h2>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5 font-mono">{document.fileName}</p>
-          </div>
+    <FocusModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Extracted Notes Inspection"
+      subtitle={document.fileName}
+      icon={<FileSearch className="w-4 h-4 text-amber-500" />}
+      badge={
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300">
+          Raw OCR / Text
+        </span>
+      }
+      color="amber"
+      maxWidth="max-w-3xl"
+      headerActions={
+        <div className="flex items-center gap-2">
+          <ColoredButton
+            color="neutral"
+            size="sm"
+            onClick={() => setIsEditing(!isEditing)}
+          >
+            {isEditing ? <Eye className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
+            <span>{isEditing ? 'Preview' : 'Edit Text'}</span>
+          </ColoredButton>
 
-          <div className="flex items-center gap-2">
+          {isEditing && (
             <ColoredButton
-              color="neutral"
+              color="emerald"
               size="sm"
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={handleSaveChanges}
             >
-              {isEditing ? <Eye className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
-              {isEditing ? 'Preview' : 'Edit Text'}
+              <Check className="w-3.5 h-3.5" />
+              <span>Save Changes</span>
             </ColoredButton>
-
-            {isEditing && (
-              <ColoredButton
-                color="emerald"
-                size="sm"
-                onClick={handleSaveChanges}
-              >
-                <Check className="w-3.5 h-3.5" />
-                Save Changes
-              </ColoredButton>
-            )}
-
-            <button 
-              onClick={onClose}
-              className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ml-1 cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          )}
         </div>
-
+      }
+      footer={
+        <div className="flex items-center justify-between w-full text-xs text-muted-foreground font-mono">
+          <span>Page {currentPage.pageNumber} of {totalPages} • {currentPage.wordCount} words</span>
+          <span>Confidence: {currentPage.confidence}%</span>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         {saveSuccess && (
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs rounded-xl flex items-center gap-2">
-            <Check className="w-3.5 h-3.5" />
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs rounded-xl flex items-center gap-2 border border-emerald-200 dark:border-emerald-800/40">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
             <span>Document text updated and re-indexed successfully.</span>
           </div>
         )}
@@ -122,7 +119,8 @@ export function InspectionModal({
             <button
               disabled={currentPageIdx <= 0}
               onClick={() => setCurrentPageIdx(prev => prev - 1)}
-              className="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 cursor-pointer"
+              className="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 cursor-pointer transition-colors"
+              title="Previous Page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -132,7 +130,8 @@ export function InspectionModal({
             <button
               disabled={currentPageIdx >= totalPages - 1}
               onClick={() => setCurrentPageIdx(prev => prev + 1)}
-              className="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 cursor-pointer"
+              className="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 cursor-pointer transition-colors"
+              title="Next Page"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -151,16 +150,17 @@ export function InspectionModal({
               rows={14}
               value={currentPage.text}
               onChange={(e) => handleTextChange(e.target.value)}
-              className="w-full p-4 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 font-mono text-xs leading-relaxed text-foreground focus:outline-none"
+              className="w-full p-4 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-700/60 font-mono text-xs leading-relaxed text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400"
+              placeholder="Page text content..."
             />
           ) : (
-            <div className="p-4 rounded-xl bg-neutral-50/80 dark:bg-neutral-900/60 border border-neutral-200/50 dark:border-neutral-800/50 font-sans text-sm leading-relaxed text-foreground/90 max-h-[50vh] overflow-y-auto whitespace-pre-wrap select-text">
+            <div className="p-4 rounded-xl bg-neutral-50/80 dark:bg-neutral-900/60 border border-neutral-200/50 dark:border-neutral-800/50 font-sans text-sm leading-relaxed text-foreground/90 max-h-[50vh] overflow-y-auto whitespace-pre-wrap select-text no-scrollbar">
               {currentPage.text}
             </div>
           )}
         </div>
       </div>
-    </div>
+    </FocusModal>
   );
 }
 

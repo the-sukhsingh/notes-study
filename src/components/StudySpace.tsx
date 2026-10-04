@@ -287,6 +287,7 @@ export function StudySpace({
         onClose={() => setActiveFocusModal(null)}
         title="Flashcards Focus Session"
         subtitle={`${document.title} • Leitner Spaced Repetition`}
+        icon={<Layers className="w-4 h-4 text-indigo-500" />}
         color="indigo"
         maxWidth="max-w-2xl"
         badge={
@@ -313,6 +314,7 @@ export function StudySpace({
         onClose={() => setActiveFocusModal(null)}
         title="Interactive Quiz Session"
         subtitle={`${document.title} • Verified against source text`}
+        icon={<CheckSquare className="w-4 h-4 text-emerald-500" />}
         color="emerald"
         maxWidth="max-w-2xl"
         badge={
@@ -339,6 +341,7 @@ export function StudySpace({
         onClose={() => setActiveFocusModal(null)}
         title="Smart Revision Queue"
         subtitle="Priority drills based on your past mistakes and recall telemetry"
+        icon={<Sparkles className="w-4 h-4 text-amber-500" />}
         color="amber"
         maxWidth="max-w-2xl"
         badge={
@@ -375,6 +378,7 @@ export function StudySpace({
         onClose={() => setActiveFocusModal(null)}
         title="Concept Explainer"
         subtitle="Feynman technique, analogies, and structured summaries"
+        icon={<HelpCircle className="w-4 h-4 text-purple-500" />}
         color="purple"
         maxWidth="max-w-2xl"
         badge={
