@@ -51,12 +51,14 @@ export async function testOllamaConnection(endpoint = 'http://localhost:11434'):
 
 /**
  * Generates flashcards using either local Ollama or the built-in deterministic offline extractor.
+ * When using Ollama, content is sent page by page to ensure full document coverage.
  */
 export async function generateFlashcards(
   doc: DocumentSource, 
   topicId?: string, 
   count = 6, 
-  settings: AISettings = DEFAULT_AI_SETTINGS
+  settings: AISettings = DEFAULT_AI_SETTINGS,
+  onProgress?: (page: number, totalPages: number) => void
 ): Promise<Flashcard[]> {
   const filteredChunks = topicId 
     ? doc.chunks.filter(c => c.topicId === topicId)
@@ -67,7 +69,7 @@ export async function generateFlashcards(
   // If Ollama is chosen and configured, try calling it
   if (settings.provider === 'ollama') {
     try {
-      const ollamaCards = await generateFlashcardsWithOllama(doc, relevantChunks, count, settings);
+      const ollamaCards = await generateFlashcardsWithOllama(doc, relevantChunks, count, settings, onProgress);
       if (ollamaCards.length > 0) return ollamaCards;
     } catch (e) {
       console.warn('Ollama generation failed or timed out, falling back to built-in extractor:', e);
@@ -80,13 +82,15 @@ export async function generateFlashcards(
 
 /**
  * Generates a quiz using either Ollama or built-in engine.
+ * When using Ollama, content is sent page by page to ensure full document coverage.
  */
 export async function generateQuiz(
   doc: DocumentSource,
   topicId?: string,
   count = 5,
   difficulty: 'easy' | 'medium' | 'hard' = 'medium',
-  settings: AISettings = DEFAULT_AI_SETTINGS
+  settings: AISettings = DEFAULT_AI_SETTINGS,
+  onProgress?: (page: number, totalPages: number) => void
 ): Promise<QuizQuestion[]> {
   const filteredChunks = topicId 
     ? doc.chunks.filter(c => c.topicId === topicId)
@@ -96,7 +100,7 @@ export async function generateQuiz(
 
   if (settings.provider === 'ollama') {
     try {
-      const ollamaQuiz = await generateQuizWithOllama(doc, relevantChunks, count, difficulty, settings);
+      const ollamaQuiz = await generateQuizWithOllama(doc, relevantChunks, count, difficulty, settings, onProgress);
       if (ollamaQuiz.length > 0) return ollamaQuiz;
     } catch (e) {
       console.warn('Ollama quiz generation fallback:', e);
@@ -541,54 +545,88 @@ async function generateFlashcardsWithOllama(
   doc: DocumentSource, 
   chunks: Chunk[], 
   count: number, 
-  settings: AISettings
+  settings: AISettings,
+  onProgress?: (page: number, totalPages: number) => void
 ): Promise<Flashcard[]> {
-  const contextSnippet = chunks.slice(0, 4).map(c => `[Page ${c.pageNumber}]: ${c.text}`).join('\n\n');
-  const prompt = `You are a study companion. Based ONLY on the following study notes, generate exactly ${count} high-quality flashcards for active recall.
+  const allCards: Flashcard[] = [];
+  const seenFronts = new Set<string>();
+  const totalPages = doc.pageCount || 1;
+
+  // Group chunks by page for page-by-page processing
+  const chunksByPage = new Map<number, Chunk[]>();
+  for (const chunk of chunks) {
+    const existing = chunksByPage.get(chunk.pageNumber) || [];
+    existing.push(chunk);
+    chunksByPage.set(chunk.pageNumber, existing);
+  }
+
+  const sortedPages = Array.from(chunksByPage.keys()).sort((a, b) => a - b);
+
+  for (let i = 0; i < sortedPages.length && allCards.length < count; i++) {
+    const pageNum = sortedPages[i];
+    const pageChunks = chunksByPage.get(pageNum)!;
+    const contextSnippet = pageChunks.map(c => c.text).join('\n\n');
+    const remaining = count - allCards.length;
+
+    onProgress?.(pageNum, totalPages);
+
+    const prompt = `You are a study companion. Based ONLY on the following study notes from Page ${pageNum}, generate up to ${remaining} high-quality flashcards for active recall.
 Return ONLY valid JSON in this exact structure:
 [
   {
     "front": "Clear question, term, or prompt",
     "back": "Accurate, concise answer directly from the notes",
     "cardType": "concept",
-    "sourcePage": 1,
+    "sourcePage": ${pageNum},
     "sourcePassage": "Brief quote from notes"
   }
 ]
 
-STUDY NOTES:
+STUDY NOTES (Page ${pageNum}):
 ${contextSnippet}`;
 
-  const res = await fetch(`${settings.ollamaEndpoint}/api/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: settings.ollamaModel,
-      prompt,
-      stream: false,
-      format: 'json',
-      options: { temperature: settings.temperature }
-    })
-  });
+    try {
+      const res = await fetch(`${settings.ollamaEndpoint}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: settings.ollamaModel,
+          prompt,
+          stream: false,
+          format: 'json',
+          options: { temperature: settings.temperature }
+        })
+      });
 
-  if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
-  const data = await res.json();
-  const parsed = JSON.parse(data.response);
-  
-  if (Array.isArray(parsed)) {
-    return parsed.map((item, idx) => ({
-      id: `ollama-card-${Date.now()}-${idx}`,
-      docId: doc.id,
-      front: item.front || 'Concept',
-      back: item.back || 'Definition',
-      cardType: item.cardType || 'concept',
-      sourcePage: item.sourcePage || chunks[0]?.pageNumber || 1,
-      sourcePassage: item.sourcePassage || chunks[0]?.text || '',
-      reps: 0,
-      intervalDays: 1
-    }));
+      if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
+      const data = await res.json();
+      const parsed = JSON.parse(data.response);
+
+      if (Array.isArray(parsed)) {
+        for (const item of parsed) {
+          if (allCards.length >= count) break;
+          const front = (item.front || '').trim();
+          if (!front || seenFronts.has(front.toLowerCase())) continue;
+          seenFronts.add(front.toLowerCase());
+          allCards.push({
+            id: `ollama-card-${Date.now()}-${allCards.length}`,
+            docId: doc.id,
+            front,
+            back: item.back || 'Definition',
+            cardType: item.cardType || 'concept',
+            sourcePage: item.sourcePage || pageNum,
+            sourcePassage: item.sourcePassage || pageChunks[0]?.text || '',
+            reps: 0,
+            intervalDays: 1
+          });
+        }
+      }
+    } catch (e) {
+      console.warn(`Ollama flashcard generation failed for page ${pageNum}:`, e);
+    }
   }
-  return [];
+
+  return allCards;
 }
 
 async function generateQuizWithOllama(
@@ -596,10 +634,32 @@ async function generateQuizWithOllama(
   chunks: Chunk[],
   count: number,
   difficulty: 'easy' | 'medium' | 'hard',
-  settings: AISettings
+  settings: AISettings,
+  onProgress?: (page: number, totalPages: number) => void
 ): Promise<QuizQuestion[]> {
-  const contextSnippet = chunks.slice(0, 4).map(c => `[Page ${c.pageNumber}]: ${c.text}`).join('\n\n');
-  const prompt = `You are an exam creator. Based ONLY on the study notes below, generate ${count} quiz questions (${difficulty} difficulty).
+  const allQuestions: QuizQuestion[] = [];
+  const seenQuestions = new Set<string>();
+  const totalPages = doc.pageCount || 1;
+
+  // Group chunks by page for page-by-page processing
+  const chunksByPage = new Map<number, Chunk[]>();
+  for (const chunk of chunks) {
+    const existing = chunksByPage.get(chunk.pageNumber) || [];
+    existing.push(chunk);
+    chunksByPage.set(chunk.pageNumber, existing);
+  }
+
+  const sortedPages = Array.from(chunksByPage.keys()).sort((a, b) => a - b);
+
+  for (let i = 0; i < sortedPages.length && allQuestions.length < count; i++) {
+    const pageNum = sortedPages[i];
+    const pageChunks = chunksByPage.get(pageNum)!;
+    const contextSnippet = pageChunks.map(c => c.text).join('\n\n');
+    const remaining = count - allQuestions.length;
+
+    onProgress?.(pageNum, totalPages);
+
+    const prompt = `You are an exam creator. Based ONLY on the study notes below from Page ${pageNum}, generate up to ${remaining} quiz questions (${difficulty} difficulty).
 Include multiple-choice questions with 4 plausible options, and true-false questions.
 Return ONLY valid JSON in this exact format:
 [
@@ -609,45 +669,57 @@ Return ONLY valid JSON in this exact format:
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctAnswer": "Option A",
     "explanation": "Why this answer is correct based on the passage",
-    "sourcePage": 1,
+    "sourcePage": ${pageNum},
     "sourcePassage": "Quote from text"
   }
 ]
 
-STUDY NOTES:
+STUDY NOTES (Page ${pageNum}):
 ${contextSnippet}`;
 
-  const res = await fetch(`${settings.ollamaEndpoint}/api/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: settings.ollamaModel,
-      prompt,
-      stream: false,
-      format: 'json',
-      options: { temperature: settings.temperature }
-    })
-  });
+    try {
+      const res = await fetch(`${settings.ollamaEndpoint}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: settings.ollamaModel,
+          prompt,
+          stream: false,
+          format: 'json',
+          options: { temperature: settings.temperature }
+        })
+      });
 
-  if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
-  const data = await res.json();
-  const parsed = JSON.parse(data.response);
+      if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
+      const data = await res.json();
+      const parsed = JSON.parse(data.response);
 
-  if (Array.isArray(parsed)) {
-    return parsed.map((q, idx) => ({
-      id: `ollama-quiz-${Date.now()}-${idx}`,
-      docId: doc.id,
-      type: q.type || 'multiple-choice',
-      question: q.question,
-      options: q.options || ['True', 'False'],
-      correctAnswer: q.correctAnswer,
-      explanation: q.explanation || 'Directly from study material.',
-      sourcePage: q.sourcePage || chunks[0]?.pageNumber || 1,
-      sourcePassage: q.sourcePassage || chunks[0]?.text || '',
-      difficulty
-    }));
+      if (Array.isArray(parsed)) {
+        for (const q of parsed) {
+          if (allQuestions.length >= count) break;
+          const questionText = (q.question || '').trim();
+          if (!questionText || seenQuestions.has(questionText.toLowerCase())) continue;
+          seenQuestions.add(questionText.toLowerCase());
+          allQuestions.push({
+            id: `ollama-quiz-${Date.now()}-${allQuestions.length}`,
+            docId: doc.id,
+            type: q.type || 'multiple-choice',
+            question: questionText,
+            options: q.options || ['True', 'False'],
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation || 'Directly from study material.',
+            sourcePage: q.sourcePage || pageNum,
+            sourcePassage: q.sourcePassage || pageChunks[0]?.text || '',
+            difficulty
+          });
+        }
+      }
+    } catch (e) {
+      console.warn(`Ollama quiz generation failed for page ${pageNum}:`, e);
+    }
   }
-  return [];
+
+  return allQuestions;
 }
 
 async function askOllamaWithChunks(
