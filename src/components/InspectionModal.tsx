@@ -63,9 +63,9 @@ export function InspectionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-in fade-in duration-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-100">
       <div 
-        className="w-full max-w-3xl bg-background rounded-2xl p-6 sm:p-7 space-y-6 max-h-[88vh] overflow-y-auto border border-neutral-200/80 dark:border-neutral-800/80 shadow-2xl"
+        className="w-full max-w-3xl bg-background/95 dark:bg-neutral-900/95 backdrop-blur-2xl ring-1 ring-black/[0.05] dark:ring-white/[0.08] shadow-[0_24px_70px_-15px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_70px_-15px_rgba(0,0,0,0.7)] rounded-[28px] p-6 sm:p-7 space-y-6 max-h-[88vh] overflow-y-auto no-scrollbar text-foreground"
         role="dialog"
         aria-modal="true"
       >
