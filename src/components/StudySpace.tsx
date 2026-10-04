@@ -236,11 +236,12 @@ export function StudySpace({
                 document={document}
                 activePageNumber={activePage}
                 onPageChange={setActivePage}
-              onExplainPassage={handleExplainPassage}
-              onAskPassage={handleAskPassage}
-              onCreateCardFromPassage={handleCreateCardFromPassage}
-            />
-          </section>
+                onExplainPassage={handleExplainPassage}
+                onAskPassage={handleAskPassage}
+                onCreateCardFromPassage={handleCreateCardFromPassage}
+              />
+            </section>
+          </div>
         </div>
       </main>
 
